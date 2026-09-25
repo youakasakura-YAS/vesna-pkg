@@ -1,0 +1,9 @@
+{
+  "name": "vesna-test",
+  "version": "1.0.0",
+  "description": "Vesna unit test framework: test_case/test_run/test_eq/test_assert/test_true",
+  "license": "MIT",
+  "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-test/vesna-test-1.0.0.zip",
+  "checksum": "5a2c52a8b3109f6ae5cf98153e89e4e66f3ea07ed285b9b07b2946484bacf9b7",
+  "dependencies": {}
+}

@@ -1,0 +1,7 @@
+{
+  "name": "vesna-test",
+  "version": "1.0.0",
+  "description": "Vesna unit test framework: test_case/test_run/test_eq/test_assert/test_true",
+  "entry": "test.ves",
+  "dependencies": {}
+}

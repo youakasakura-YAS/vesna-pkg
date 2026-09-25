@@ -1,0 +1,63 @@
+/* vesna-test —— Vesna 单元测试框架
+   用法: import vesna-test
+         def my_test()-
+         -back(test_eq(#len("abc"); '3'; "len")),
+         test_case("示例用例"; "my_test"),
+         test_run()   // 函数名传字符串，内部用 #call 动态调用 */
+
+import json,
+
+_cases = [],
+
+def test_assert(cond; msg)-
+-if cond-
+--back(true),
+-print("  断言失败: " + msg),
+-back(false),
+
+def test_eq(actual; expected; msg)-
+-if actual == expected-
+--back(true),
+-print("  断言失败: " + msg),
+-print("    期望: " + #str(expected)),
+-print("    实际: " + #str(actual)),
+-back(false),
+
+def test_true(v; msg)-
+-if v == true-
+--back(true),
+-print("  断言失败: " + msg + "（期望 true，实际 " + #str(v) + "）"),
+-back(false),
+
+def test_case(name; fn)-
+-#append(_cases; {"name": name; "fn": fn}),
+
+def test_count()-
+-back(#len(_cases)),
+
+def test_run()-
+-fail = '0',
+-pass_n = '0',
+-total = #len(_cases),
+-if total == '0'-
+--print("（无测试用例）"),
+--back('0'),
+-print("运行 " + #str(total) + " 个测试用例 ..."),
+-for c in _cases-
+--name = c["name"],
+--fn = c["fn"],
+--try-
+---ok = #call(fn),
+--catch e-
+---print("  用例失败: " + name + "（异常: " + e + "）"),
+---fail = fail + '1',
+---continue,
+--if ok == false-
+---print("  用例失败: " + name),
+---fail = fail + '1',
+--else-
+---pass_n = pass_n + '1',
+-print("结果: 通过 " + #str(pass_n) + " / " + #str(total) + "，失败 " + #str(fail)),
+-if fail > '0'-
+--back('1'),
+-back('0'),
