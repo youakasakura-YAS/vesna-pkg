@@ -10,4 +10,15 @@
     "checksum": "6d6346b95a39cb8029f698c0cb59aa3458a48f5dc542962b002516f5cbaf5ff4",
     "dependencies": {}
   }
+,  {
+    "name": "hello_vesna",
+    "version": "1.0.0",
+    "description": "Example package: greet + versions.",
+    "author": "youakasakura-YAS",
+    "license": "MIT",
+    "keywords": ["example", "hello"],
+    "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/hello_vesna/hello_vesna-1.0.0.zip",
+    "checksum": "91D2F8089DF9292B683DC57E47648F8FAF5A5616809D954EA8E7E4673FED6D19",
+    "dependencies": {}
+  }
 ]
