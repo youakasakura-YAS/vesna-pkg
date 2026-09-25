@@ -1,0 +1,50 @@
+/* strutil — 字符串工具包 v1.0.0
+   用法: import strutil,  */
+
+/* 转 slug：小写、非字母数字转为 - */
+def str_slug(s)-
+-t = #down(s),
+-t = #gsub(t; "[^a-z0-9]+"; "-"),
+-t = #gsub(t; "^-+"; ""),
+-t = #gsub(t; "-+$"; ""),
+-back(t),
+
+/* 截断：保留前 n 字符，超出加 "..." */
+def str_truncate(s; n)-
+-if #len(s) <= n-
+--back(s),
+-back(#sub(s; '1'; n) + "..."),
+
+/* 按宽度折行，返回行列表 */
+def str_wrap(s; width)-
+-words = #split(s; " "),
+-lines = [],
+-cur = "",
+-for w in words-
+--if cur == ""-
+---cur = w,
+--elif #len(cur) + '1' + #len(w) <= width-
+---cur = cur + " " + w,
+--else-
+---#append(lines; cur),
+---cur = w,
+-if cur != ""-
+--#append(lines; cur),
+-back(lines),
+
+/* 脱敏：保留首末各 keep 个字符，中间以 *** 代替 */
+def str_mask(s; keep)-
+-if #len(s) <= keep * '2' + '1'-
+--back(s),
+-first = #sub(s; '1'; keep),
+-last = #sub(s; #len(s) - keep + '1'; #len(s)),
+-back(first + "***" + last),
+
+/* 居中补齐：在两侧补 pad 字符使总长为 width */
+def str_pad_center(s; width; pad)-
+-d = width - #len(s),
+-if d <= '0'-
+--back(s),
+-left = d / '2',
+-right = d - left,
+-back(#repeat(pad; left) + s + #repeat(pad; right)),

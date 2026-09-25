@@ -1,0 +1,13 @@
+[
+  {
+    "name": "strutil",
+    "version": "1.0.0",
+    "description": "String utilities for Vesna: slugify, truncate, wrap, mask, pad-center.",
+    "author": "youakasakura-YAS",
+    "license": "MIT",
+    "keywords": ["string", "text", "utils"],
+    "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/strutil/strutil-1.0.0.zip",
+    "checksum": "6d6346b95a39cb8029f698c0cb59aa3458a48f5dc542962b002516f5cbaf5ff4",
+    "dependencies": {}
+  }
+]

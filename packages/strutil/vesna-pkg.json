@@ -1,0 +1,7 @@
+{
+  "name": "strutil",
+  "version": "1.0.0",
+  "description": "String utilities: slugify, truncate, wrap, mask, pad-center.",
+  "entry": "strutil.ves",
+  "dependencies": {}
+}

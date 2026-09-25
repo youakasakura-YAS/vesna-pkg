@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vesna 包花园 — vpm 包索引</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%232F7A4F'/%3E%3Cpath d='M32 18c7 0 12 5 12 12s-5 12-12 12-12-5-12-12 5-12 12-12z' fill='%23F7F5F0'/%3E%3Cpath d='M32 14v6M18 32h6M46 32h6M32 46v6' stroke='%23A7C957' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #F7F5F0;
+    --paper: #FFFDF8;
+    --ink: #24302A;
+    --ink-soft: #5A675E;
+    --leaf: #2F7A4F;
+    --leaf-deep: #1F3D2B;
+    --sprout: #A7C957;
+    --pollen: #E9C46A;
+    --line: #E3DFD4;
+    --mono: "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+    --serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+    --sans: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+  /* ===== Hero ===== */
+  header {
+    padding: 56px 0 40px;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(167,201,87,.18), transparent 42%),
+      radial-gradient(circle at 85% 0%, rgba(47,122,79,.14), transparent 40%),
+      var(--paper);
+    border-bottom: 1px solid var(--line);
+  }
+  .hero-title {
+    font-family: var(--serif);
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    margin: 0 0 6px;
+  }
+  .hero-title em { font-style: normal; color: var(--leaf); }
+  .hero-sub { color: var(--ink-soft); margin: 0 0 24px; max-width: 60ch; }
+  .hero-meta { font-family: var(--mono); font-size: 14px; color: var(--ink-soft); }
+  .hero-meta b { color: var(--leaf-deep); font-weight: 700; }
+
+  .cmd {
+    background: var(--leaf-deep);
+    color: #EAF5EC;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.9;
+    overflow-x: auto;
+    white-space: pre;
+    margin: 18px 0 0;
+  }
+  .cmd .c { color: #9CC9A9; }
+  .cmd .d { color: var(--pollen); }
+
+  /* ===== Toolbar ===== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 0;
+    flex-wrap: wrap;
+  }
+  .search {
+    flex: 1 1 260px;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 12px;
+  }
+  .search svg { flex: none; }
+  .search input {
+    border: none;
+    background: none;
+    outline: none;
+    font: inherit;
+    font-size: 16px;
+    color: var(--ink);
+    width: 100%;
+  }
+  .count { font-family: var(--mono); font-size: 13px; color: var(--ink-soft); }
+
+  /* ===== Package list ===== */
+  .pkg-list { padding-bottom: 48px; }
+  .pkg {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .pkg-head {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 18px;
+    cursor: pointer;
+  }
+  .pkg-head:focus-visible { outline: 2px solid var(--leaf); outline-offset: -2px; }
+  .pkg-icon {
+    width: 40px; height: 40px;
+    border-radius: 9px;
+    background: var(--leaf);
+    color: #F3FAF4;
+    display: flex; align-items: center; justify-content: center;
+    flex: none;
+  }
+  .pkg-name { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--leaf-deep); }
+  .pkg-ver { font-family: var(--mono); font-size: 12px; color: var(--leaf); margin-left: 8px; }
+  .pkg-desc { color: var(--ink-soft); font-size: 14px; margin-top: 2px; }
+  .pkg-toggle {
+    flex: none;
+    color: var(--ink-soft);
+    transition: transform .18s ease;
+  }
+  .pkg.open .pkg-toggle { transform: rotate(180deg); }
+
+  .pkg-body { display: none; padding: 0 18px 18px; border-top: 1px dashed var(--line); }
+  .pkg.open .pkg-body { display: block; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px 18px;
+    padding: 14px 0;
+    font-size: 13px;
+  }
+  .meta-grid dt { color: var(--ink-soft); font-size: 12px; margin-bottom: 2px; }
+  .meta-grid dd { margin: 0; font-family: var(--mono); font-size: 12.5px; word-break: break-all; }
+  .install-line {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .install-line code { white-space: nowrap; overflow-x: auto; }
+  button.copy {
+    flex: none;
+    font: inherit;
+    font-size: 13px;
+    color: var(--leaf-deep);
+    background: var(--sprout);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    min-height: 34px;
+  }
+  button.copy:hover { background: #BBD56E; }
+  button.copy:active { transform: translateY(1px); }
+  button.copy:focus-visible { outline: 2px solid var(--leaf); outline-offset: 1px; }
+  .tags { margin-top: 12px; }
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--leaf-deep);
+    background: rgba(167,201,87,.16);
+    border-radius: 20px;
+    padding: 2px 10px;
+    margin: 0 6px 6px 0;
+  }
+
+  /* ===== Empty state ===== */
+  .empty {
+    display: none;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-soft);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    background: var(--paper);
+  }
+  .empty.visible { display: block; }
+  .empty .retry {
+    margin-top: 16px;
+    font: inherit;
+    color: var(--leaf-deep);
+    background: var(--sprout);
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    cursor: pointer;
+    min-height: 38px;
+  }
+  .empty .retry:focus-visible { outline: 2px solid var(--leaf); }
+
+  /* ===== Footer ===== */
+  footer {
+    border-top: 1px solid var(--line);
+    background: var(--paper);
+    padding: 26px 0 34px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: space-between; }
+  footer code { font-family: var(--mono); font-size: 12px; background: var(--bg); padding: 1px 6px; border-radius: 4px; }
+
+  @media (max-width: 640px) {
+    header { padding: 40px 0 28px; }
+    .hero-title { font-size: 30px; }
+    .pkg-head { grid-template-columns: auto 1fr auto; padding: 12px 14px; }
+    .pkg-desc { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="hero-meta">vesna — vpm 包索引 · <span id="regUrl">youakasakura-YAS.github.io/vesna-pkg</span></p>
+    <h1 class="hero-title">Vesna 包<em>花园</em></h1>
+    <p class="hero-sub">Vesna 官方包下载站。安装一个包，然后 <code>import</code> 它——像种下一粒种子。</p>
+    <div class="cmd"><span class="c">#</span> 配置 registry（一次性）
+vesna --pkg registry <span class="d">https://youakasakura-YAS.github.io/vesna-pkg/registry.json</span>
+<span class="c">#</span> 搜索并安装
+vesna --pkg search <span class="d">strutil</span>
+vesna --pkg install <span class="d">strutil</span></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="toolbar">
+    <label class="search" for="q">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="text" placeholder="按名称、描述或关键词筛选包…" autocomplete="off">
+    </label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <section class="pkg-list" id="list" aria-live="polite"></section>
+
+  <div class="empty" id="empty">
+    <p id="emptyMsg">正在加载包索引…</p>
+    <button class="retry" id="retry" type="button">重新加载</button>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Vesna 包花园 · 静态索引 + zip 分发</span>
+    <span>命令速查：<code>--pkg registry &lt;url&gt;</code> · <code>--pkg search &lt;kw&gt;</code> · <code>--pkg install &lt;name&gt;</code></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var REG_URL = "registry.json";
+  var state = { data: [], q: "" };
+
+  var listEl = document.getElementById("list");
+  var countEl = document.getElementById("count");
+  var emptyEl = document.getElementById("empty");
+  var emptyMsg = document.getElementById("emptyMsg");
+  var qEl = document.getElementById("q");
+  var retryBtn = document.getElementById("retry");
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function render() {
+    var q = state.q.trim().toLowerCase();
+    var items = state.data.filter(function (p) {
+      if (!q) return true;
+      var hay = (p.name + " " + p.description + " " + (p.keywords || []).join(" ") + " " + (p.author || "")).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+
+    if (!state.data.length) {
+      listEl.innerHTML = "";
+      countEl.textContent = "";
+      emptyEl.classList.add("visible");
+      return;
+    }
+    emptyEl.classList.remove("visible");
+    countEl.textContent = items.length + " / " + state.data.length + " 个包";
+    listEl.innerHTML = items.map(function (p, i) {
+      var tags = (p.keywords || []).map(function (k) { return '<span class="tag">' + esc(k) + "</span>"; }).join("");
+      var deps = (p.dependencies && Object.keys(p.dependencies).length)
+        ? Object.keys(p.dependencies).join(", ") : "无";
+      return (
+        '<article class="pkg" data-i="' + i + '">' +
+        '<div class="pkg-head" tabindex="0" role="button" aria-expanded="false">' +
+          '<span class="pkg-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg></span>' +
+          '<span><span class="pkg-name">' + esc(p.name) + '</span><span class="pkg-ver">v' + esc(p.version) + "</span>" +
+          '<div class="pkg-desc">' + esc(p.description) + "</div></span>" +
+          '<svg class="pkg-toggle" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>' +
+        "</div>" +
+        '<div class="pkg-body">' +
+          '<dl class="meta-grid">' +
+            "<dt>作者</dt><dd>" + esc(p.author || "—") + "</dd>" +
+            "<dt>协议</dt><dd>" + esc(p.license || "—") + "</dd>" +
+            "<dt>依赖</dt><dd>" + esc(deps) + "</dd>" +
+            "<dt>SHA-256</dt><dd>" + esc(p.checksum || "—") + "</dd>" +
+            '<dt>下载地址</dt><dd><a href="' + esc(p.url || "#") + '">' + esc(p.url || "—") + "</a></dd>" +
+          "</dl>" +
+          '<div class="install-line"><code>vesna --pkg install ' + esc(p.name) + "</code>" +
+          '<button class="copy" data-cmd="vesna --pkg install ' + esc(p.name) + '" type="button">复制命令</button></div>' +
+          (tags ? '<div class="tags">' + tags + "</div>" : "") +
+        "</div>" +
+        "</article>"
+      );
+    }).join("");
+
+    listEl.querySelectorAll(".pkg-head").forEach(function (head) {
+      head.addEventListener("click", function () {
+        var pkg = head.closest(".pkg");
+        var open = pkg.classList.toggle("open");
+        head.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+      head.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); head.click(); }
+      });
+    });
+    listEl.querySelectorAll(".copy").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var cmd = btn.getAttribute("data-cmd");
+        try {
+          navigator.clipboard.writeText(cmd).then(function () {
+            btn.textContent = "已复制";
+            setTimeout(function () { btn.textContent = "复制命令"; }, 1600);
+          });
+        } catch (e) {
+          btn.textContent = "复制失败";
+        }
+      });
+    });
+  }
+
+  function load() {
+    emptyMsg.textContent = "正在加载包索引…";
+    emptyEl.classList.add("visible");
+    listEl.innerHTML = "";
+    fetch(REG_URL, { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (arr) {
+        if (!Array.isArray(arr)) throw new Error("索引格式错误");
+        state.data = arr;
+        render();
+      })
+      .catch(function (err) {
+        state.data = [];
+        emptyMsg.textContent = "无法加载包索引：" + err.message + "。请确认已部署到 GitHub Pages（https 环境），或稍后重试。";
+        render();
+      });
+  }
+
+  qEl.addEventListener("input", function () { state.q = qEl.value; render(); });
+  retryBtn.addEventListener("click", load);
+  load();
+})();
+</script>
+</body>
+</html>
