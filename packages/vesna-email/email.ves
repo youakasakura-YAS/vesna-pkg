@@ -1,0 +1,194 @@
+/* ============================================================
+   vesna-email 1.0.0 - email send + local mailbox (pure Vesna)
+   邮件发送 + 本地邮箱（纯 Vesna 实现，不依赖第三方库）
+
+   Usage / 用法:
+     import email,
+     # 发送邮件（支持 SMTP 与可选登录认证）
+     smtp_send("smtp.example.com"; '587'; "user"; "pass"; "a@example.com"; "b@example.com"; "标题"; "正文"),
+     # 启动本地邮箱（简化 SMTP 服务端，收信落盘为 .eml）
+     smtp_server('8025'; "C:\\tmp\\mailbox"),
+   ============================================================ */
+
+/* ---- internal helpers / 内部工具 ---- */
+
+def _lower(s)-
+-out = "",
+-for i in #range('1'; #len(s) + '1')-
+--ch = #char_at(s; i),
+--o = #ord(ch),
+--if o >= '65' and o <= '90'-
+---out = out + #chr(o + '32'),
+--else-
+---out = out + ch,
+--,
+-,
+-back(out),
+,
+
+/* 读一行（到 \r\n 或 \n） */
+def _recv_line(c)-
+-buf = "",
+-while true-
+--b = #tcp_recv(c; '1'),
+--if #len(b) == '0'-
+---break,
+--,
+--buf = buf + b,
+--if #endswith(buf; "\n")-
+---break,
+--,
+-,
+-buf = #trim(buf),
+-back(buf),
+,
+
+/* 读完整 SMTP 响应（处理 250- 多行） */
+def _recv_resp(s)-
+-acc = "",
+-while true-
+--l = _recv_line(s),
+--acc = acc + l + "\n",
+--if #len(l) < '4' or #char_at(l; '4') != "-"-
+---break,
+--,
+-,
+-back(acc),
+,
+
+/* ---- 发送邮件 / send email ---- */
+
+/* smtp_send(server; port; user; pass; from; to; subject; body)
+   user/pass 为空字符串则跳过 AUTH；port 为数字字面量如 '587' */
+def smtp_send(server; port; user; pass; from; to; subject; body)-
+-s = #tcp_connect(server; port),
+-if s < '0'-
+--back("error: connect failed"),
+-,
+-r0 = _recv_line(s),
+-if not #startswith(r0; "220")-
+--#tcp_close(s),
+--back("error: " + r0),
+-,
+-#tcp_send(s; "EHLO vesna\r\n"),
+-r1 = _recv_resp(s),
+-if #len(user) > '0'-
+--#tcp_send(s; "AUTH LOGIN\r\n"),
+--r2 = _recv_line(s),
+--#tcp_send(s; #base64_encode(user) + "\r\n"),
+--r3 = _recv_line(s),
+--#tcp_send(s; #base64_encode(pass) + "\r\n"),
+--r4 = _recv_line(s),
+--if not #startswith(r4; "235")-
+---#tcp_close(s),
+---back("error: auth " + r4),
+--,
+-,
+-#tcp_send(s; "MAIL FROM:<" + from + ">\r\n"),
+-r5 = _recv_line(s),
+-#tcp_send(s; "RCPT TO:<" + to + ">\r\n"),
+-r6 = _recv_line(s),
+-#tcp_send(s; "DATA\r\n"),
+-r7 = _recv_line(s),
+-if not #startswith(r7; "354")-
+--#tcp_close(s),
+--back("error: data " + r7),
+-,
+-msg = "From: " + from + "\r\nTo: " + to + "\r\nSubject: " + subject + "\r\n\r\n" + body,
+-msg = #replace(msg; "\r\n."; "\r\n.."),
+-#tcp_send(s; msg + "\r\n.\r\n"),
+-r8 = _recv_line(s),
+-#tcp_send(s; "QUIT\r\n"),
+-r9 = _recv_line(s),
+-#tcp_close(s),
+-if #startswith(r8; "250")-
+--back("sent"),
+-,
+-back("error: " + r8),
+,
+
+/* ---- 本地邮箱 / local mailbox ---- */
+
+/* 单连接处理（简化 SMTP 服务端：收信落盘为 NNNN.eml） */
+def _handle_conn(c; dir; n)-
+-#tcp_send(c; "220 vesna local mail\r\n"),
+-data_mode = false,
+-auth_stage = '0',
+-while true-
+--l = _recv_line(c),
+--if data_mode-
+---if l == "."-
+----data_mode = false,
+----n = n + '1',
+----#fwrite(dir + "\\" + #pad(#str(n); '4'; "0") + ".eml"; msg),
+----#tcp_send(c; "250 2.0.0 Ok: queued\r\n"),
+---else-
+----msg = msg + l + "\r\n",
+---,
+--else-
+---if #len(l) == '0'-
+----break,
+---,
+---parts = #split(l; " "),
+---cmd = _lower(parts['1']),
+---if cmd == "ehlo" or cmd == "helo"-
+----#tcp_send(c; "250 vesna\r\n"),
+---elif cmd == "mail"-
+----#tcp_send(c; "250 2.1.0 Ok\r\n"),
+---elif cmd == "rcpt"-
+----#tcp_send(c; "250 2.1.5 Ok\r\n"),
+---elif cmd == "data"-
+----#tcp_send(c; "354 End data with <CR><LF>.<CR><LF>\r\n"),
+----data_mode = true,
+----msg = "",
+---elif cmd == "auth"-
+----#tcp_send(c; "334 VXNlcm5hbWU6\r\n"),
+----auth_stage = '1',
+---elif cmd == "quit"-
+----#tcp_send(c; "221 Bye\r\n"),
+----break,
+---elif cmd == "rset"-
+----#tcp_send(c; "250 Ok\r\n"),
+---else-
+----if auth_stage == '1'-
+-----#tcp_send(c; "334 UGFzc3dvcmQ6\r\n"),
+-----auth_stage = '2',
+----elif auth_stage == '2'-
+-----#tcp_send(c; "235 2.7.0 Authentication successful\r\n"),
+-----auth_stage = '0',
+----else-
+-----#tcp_send(c; "250 Ok\r\n"),
+----,
+---,
+--,
+-,
+-#tcp_close(c),
+-back(n),
+,
+
+/* 启动本地邮箱服务（阻塞）：收信保存为 dir\NNNN.eml */
+def smtp_server(port; dir)-
+-#mkdirs(dir),
+-srv = #tcp_listen(port),
+-print("vesna-email local mailbox: " + #str(port) + " -> " + dir),
+-n = '0',
+-while true-
+--c = #tcp_accept(srv),
+--n = _handle_conn(c; dir; n),
+-,
+,
+
+/* 列出已收邮件 / list received mails */
+def mail_list(dir)-
+-files = #glob(dir + "\\*.eml"),
+-out = [],
+-for f in files-
+--out = #append(out; {"file": f; "size": #fsize(f)}),
+-,
+-back(out),
+,
+
+/* 读取第 idx 封邮件 / read mail by index (1-based) */
+def mail_read(dir; idx)-
+-back(#fread(dir + "\\" + #pad(#str(idx); '4'; "0") + ".eml")),
+,

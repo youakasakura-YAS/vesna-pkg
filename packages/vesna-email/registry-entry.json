@@ -1,0 +1,9 @@
+{
+  "name": "vesna-email",
+  "version": "1.0.0",
+  "description": "Email for Vesna: SMTP client (send mail, optional AUTH LOGIN) and a local mailbox server that saves .eml files",
+  "license": "MIT",
+  "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-email/vesna-email-1.0.0.zip",
+  "checksum": "f8a7d5f5dfdd94469727bcfb0b65afd02aee3f472d68a5327f4a9c5370201c49",
+  "dependencies": {}
+}

@@ -1,0 +1,7 @@
+{
+  "name": "vesna-gui",
+  "version": "1.0.0",
+  "description": "Web GUI framework for Vesna: serve HTML pages, static assets and JSON APIs via pure-Vesna HTTP over TCP",
+  "entry": "gui.ves",
+  "dependencies": {}
+}

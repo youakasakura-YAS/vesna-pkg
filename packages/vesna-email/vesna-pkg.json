@@ -1,0 +1,7 @@
+{
+  "name": "vesna-email",
+  "version": "1.0.0",
+  "description": "Email for Vesna: SMTP client (send mail, optional AUTH LOGIN) and a local mailbox server that saves .eml files",
+  "entry": "email.ves",
+  "dependencies": {}
+}

@@ -1,0 +1,104 @@
+/* ============================================================
+   vesna-gui 演示：Web 文件管理器 + 编辑器
+   Demo: web file manager + editor (Chinese UI)
+   运行 / Run:  vesna app.ves   ->  http://localhost:18081
+   ============================================================ */
+
+import gui,
+
+root = #temp_dir() + "/vesna-webroot",
+#mkdirs(root),
+
+/* 路径穿越防护 */
+def _safe(name)-
+-if #len(name) == '0' or #contains(name; "..") or #contains(name; "/") or #contains(name; "\\")-
+--back(""),
+-,
+-back(name),
+,
+
+/* ---- 页面 / pages ---- */
+
+def page_home(req)-
+-back(gui_page("文件管理"; "<h3>文件列表</h3><div id=\"list\">加载中...</div>")),
+,
+
+def page_new(req)-
+-back(gui_page("新建文件"; "<h3>新建文件</h3><div class=\"row\"><input type=\"text\" id=\"name\" placeholder=\"文件名\"></div><div class=\"row\"><textarea id=\"content\" placeholder=\"内容\"></textarea></div><div class=\"row\"><button onclick=\"saveNew(event)\">创建</button><button class=\"ghost\" onclick=\"location.hash=\\'#/\\'\">返回</button></div>")),
+,
+
+/* ---- API / APIs ---- */
+
+def api_list(req)-
+-out = [],
+-for f in #glob(root + "/*")-
+--nm = #last(#split(f; "\\")),
+--out = #append(out; {"name": nm; "dir": #is_dir(f); "size": #fsize(f)}),
+-,
+-back(gui_json(out)),
+,
+
+def api_read(req)-
+-name = _query(req; "name"),
+-fp = root + "\\" + _safe(name),
+-if #fexists(fp)-
+--back(gui_json({"name": name; "content": #fread(fp)})),
+-,
+-back(gui_json({"name": name; "content": ""})),
+,
+
+def api_write(req)-
+-name = _form(#get(req; "body"); "name"),
+-content = _form(#get(req; "body"); "content"),
+-fp = root + "\\" + _safe(name),
+-if #len(name) == '0'-
+--back(gui_json({"ok": false; "file": ""})),
+-,
+-#fwrite(fp; content),
+-back(gui_json({"ok": true; "file": name; "size": #fsize(fp)})),
+,
+
+/* ---- 查询/表单解析 / query & form parsing ---- */
+
+def _query(req; key)-
+-q = #get(req; "query"),
+-if #len(q) == '0'-
+--back(""),
+-,
+-for kv in #split(q; "&")-
+--p = #split(kv; "="),
+--if #len(p) >= '2' and p['1'] == key-
+---back(#url_decode(p['2'])),
+--,
+-,
+-back(""),
+,
+
+def _form(body; key)-
+-if #len(body) == '0'-
+--back(""),
+-,
+-for kv in #split(body; "&")-
+--p = #split(kv; "="),
+--if #len(p) >= '2' and #url_decode(p['1']) == key-
+---back(#url_decode(p['2'])),
+--,
+-,
+-back(""),
+,
+
+/* ---- 路由 / routes ---- */
+
+routes = {"/": "page_home"; "/new": "page_new"; "/api/list": "api_list"; "/api/read": "api_read"; "/api/write": "api_write"},
+
+js1 = "function toast(m){var t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(function(){t.style.display='none'},1600)}",
+js2 = "function loadList(){fetch('/api/list').then(function(r){return r.json()}).then(function(files){var h='<table><thead><tr><th>名称</th><th>类型</th><th>大小</th><th></th></tr></thead><tbody>';files.forEach(function(f){var t=f.dir?'目录':'文件';var sz=f.dir?'-':f.size+' B';h+='<tr><td>'+f.name+'</td><td>'+t+'</td><td>'+sz+'</td><td>'+(f.dir?'':'<button onclick=\"openFile(\\''+f.name+'\\')\">打开</button>')+'</td></tr>'});h+='</tbody></table>';document.getElementById('list').innerHTML=h}).catch(function(e){toast('加载失败')})}",
+js3 = "function openFile(n){fetch('/api/read?name='+encodeURIComponent(n)).then(function(r){return r.json()}).then(function(d){var h='<h3>'+d.name+'</h3><textarea id=\"content\">'+d.content.replace(/</g,'&lt;')+'</textarea><div class=\"row\"><button onclick=\"saveFile(\\''+d.name+'\\')\">保存</button><button class=\"ghost\" onclick=\"location.hash=\\'#/\\'\">返回</button></div>';document.getElementById('list').innerHTML=h}).catch(function(e){toast('读取失败')})}",
+js4 = "function saveFile(n){var c=document.getElementById('content').value;fetch('/api/write',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)+'&content='+encodeURIComponent(c)}).then(function(r){return r.json()}).then(function(d){toast('已保存: '+d.file)}).catch(function(e){toast('保存失败')})}",
+js5 = "function saveNew(e){e.preventDefault();var n=document.getElementById('name').value;var c=document.getElementById('content').value;fetch('/api/write',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)+'&content='+encodeURIComponent(c)}).then(function(r){return r.json()}).then(function(d){toast('已创建: '+d.file);location.hash='#/'}).catch(function(e){toast('保存失败')});return false}",
+js6 = "window.addEventListener('hashchange',function(){if(location.hash==''||location.hash=='#/')loadList()});loadList()",
+js = js1 + js2 + js3 + js4 + js5 + js6,
+
+assets = {"/static/app.js": js},
+
+gui_serve('18081'; routes; assets),

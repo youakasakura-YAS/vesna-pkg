@@ -1,0 +1,221 @@
+/* ============================================================
+   vesna-gui 1.0.0 - Web GUI framework (pure Vesna, no new builtins)
+   Web 图形化操作平台框架（纯 Vesna，零新增内置、零第三方库）
+
+   Usage / 用法:
+     import gui,
+     routes = {"/": "page_home"; "/api/list": "api_list"},
+     assets = {"/static/app.js": js},
+     gui_serve('8080'; routes; assets),
+   ============================================================ */
+
+/* ---- internal helpers / 内部工具 ---- */
+
+def _lower(s)-
+-out = "",
+-for i in #range('1'; #len(s) + '1')-
+--ch = #char_at(s; i),
+--o = #ord(ch),
+--if o >= '65' and o <= '90'-
+---out = out + #chr(o + '32'),
+--else-
+---out = out + ch,
+--,
+-,
+-back(out),
+,
+
+/* 读一行（到 \r\n 或 \n） */
+def _recv_line(c)-
+-buf = "",
+-while true-
+--b = #tcp_recv(c; '1'),
+--if #len(b) == '0'-
+---break,
+--,
+--buf = buf + b,
+--if #endswith(buf; "\n")-
+---break,
+--,
+-,
+-buf = #trim(buf),
+-back(buf),
+,
+
+/* 读满 Content-Length 指定的字节数 */
+def _read_body(c; len)-
+-buf = "",
+-n = '0',
+-while n < len-
+--b = #tcp_recv(c; '1'),
+--if #len(b) == '0'-
+---break,
+--,
+--buf = buf + b,
+--n = n + '1',
+-,
+-back(buf),
+,
+
+/* ---- 请求解析 / request parsing ---- */
+
+/* 解析请求头为字典 {"method"; "path"; "query"; "headers"; "body"} */
+def _parse_req(head)-
+-lines = #split(head; "\r\n"),
+-first = lines['1'],
+-parts = #split(first; " "),
+-method = "GET",
+-path = "/",
+-query = "",
+-if #len(parts) >= '3'-
+--method = parts['1'],
+--path = parts['2'],
+-,
+--qp = #find(path; "?"),
+--if qp > '0'-
+---query = #sub(path; qp + '1'; #len(path)),
+---path = #sub(path; '1'; qp - '1'),
+--,
+-,
+-hs = {},
+-for i in #range('2'; #len(lines) + '1')-
+--l = lines[i],
+--if #len(l) == '0'-
+---break,
+--,
+--c2 = #find(l; ":"),
+--if c2 > '0'-
+---k = _lower(#trim(#sub(l; '1'; c2 - '1'))),
+---v = #trim(#sub(l; c2 + '1'; #len(l))),
+---hs[k] = v,
+--,
+-,
+-back({"method": method; "path": path; "query": query; "headers": hs; "body": ""}),
+,
+
+/* ---- 响应 / responses ---- */
+
+def _resp(code; type; body)-
+-h = "HTTP/1.1 " + #str(code) + "\r\nContent-Type: " + type + "\r\nContent-Length: " + #str(#len(body)) + "\r\nConnection: close\r\n\r\n",
+-back(h + body),
+,
+
+/* ---- 连接处理 / connection handling ---- */
+
+/* 读完整请求（头 + 可选 body） */
+def _read_conn(c)-
+-head = _recv_line(c),
+-h2 = "",
+-while true-
+--l = _recv_line(c),
+--h2 = h2 + l + "\r\n",
+--if #len(l) == '0'-
+---break,
+--,
+-,
+-req = _parse_req(head + "\r\n" + h2),
+-cl = #get(#get(req; "headers"); "content-length"),
+-if #type(cl) == "str" and #len(cl) > '0'-
+--n = #into(int; cl),
+--req["body"] = _read_body(c; n),
+-,
+-back(req),
+,
+
+/* 路由分发：routes 为路径->处理函数名字典；assets 为路径->原始字符串字典 */
+def _handle(req; routes; assets)-
+-p = #get(req; "path"),
+-if #has_key(routes; p)-
+--fn = #get(routes; p),
+--r = #call(fn; req),
+--if #type(r) == "dict"-
+---back(r),
+--,
+--back({"code": '200'; "type": "text/html; charset=utf-8"; "body": r}),
+-,
+-if #has_key(assets; p)-
+--back({"code": '200'; "type": "text/javascript; charset=utf-8"; "body": #get(assets; p)}),
+-,
+-back({"code": '404'; "type": "text/plain"; "body": "404 not found: " + p}),
+,
+
+/* 单连接处理（线程入口） */
+def _serve_conn(c; routes; assets)-
+-req = _read_conn(c),
+-r = _handle(req; routes; assets),
+-msg = _resp(#get(r; "code"); #get(r; "type"); #get(r; "body")),
+-#tcp_send(c; msg),
+-#tcp_close(c),
+-back("ok"),
+,
+
+/* ---- 服务入口 / serve ---- */
+
+/* 启动 Web 服务（阻塞）：每连接一线程 */
+def gui_serve(port; routes; assets)-
+-srv = #tcp_listen(port),
+-print("vesna-gui listening on " + #str(port)),
+-while true-
+--c = #tcp_accept(srv),
+--#thread("_serve_conn"; c; routes; assets),
+-,
+,
+
+/* ---- UI 助手 / UI helpers ---- */
+
+/* HTML 转义 */
+def gui_esc(s)-
+-s = #replace(s; "&"; "&amp;"),
+-s = #replace(s; "<"; "&lt;"),
+-s = #replace(s; ">"; "&gt;"),
+-s = #replace(s; "\""; "&quot;"),
+-back(s),
+,
+
+/* 内置样式串 */
+def _css()-
+-back("body{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#f5f6fa;color:#1f2937}.topbar{background:#1f2937;color:#fff;padding:12px 20px;font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}.topbar .brand{flex:1}.wrap{display:flex;gap:16px;padding:16px;align-items:flex-start}.side{width:210px;background:#fff;border-radius:10px;padding:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}.side a{display:block;padding:8px 12px;color:#374151;text-decoration:none;border-radius:6px;margin-bottom:2px}.side a.active{background:#eef2ff;color:#4f46e5;font-weight:600}.main{flex:1;background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}.main h3{margin-top:0}.main textarea{width:100%;height:280px;font-family:ui-monospace,Consolas,monospace;font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:10px;box-sizing:border-box}.row{display:flex;gap:10px;margin-top:10px}.row button,.main button{padding:7px 16px;border:0;border-radius:6px;background:#4f46e5;color:#fff;cursor:pointer}.row button.ghost,.main button.ghost{background:#e5e7eb;color:#374151}.main table{width:100%;border-collapse:collapse}.main th,.main td{padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:14px}.main th{color:#6b7280;font-weight:600}.main input[type=text]{width:60%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:6px}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;display:none}"),
+,
+
+/* 完整页面 */
+def gui_page(title; inner)-
+-back("<!DOCTYPE html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + gui_esc(title) + "</title><style>" + _css() + "</style></head><body><div class=\"topbar\"><span class=\"brand\">" + gui_esc(title) + "</span></div><div class=\"wrap\"><nav id=\"side\"></nav><div class=\"main\" id=\"main\">" + inner + "</div></div><div class=\"toast\" id=\"toast\"></div></body></html>"),
+,
+
+/* HTML 表格 */
+def gui_table(headers; rows)-
+-h = "<table><thead><tr>",
+-for i in headers-
+--h = h + "<th>" + gui_esc(i) + "</th>",
+-,
+-h = h + "</tr></thead><tbody>",
+-for r in rows-
+--h = h + "<tr>",
+--for i in r-
+---h = h + "<td>" + gui_esc(i) + "</td>",
+--,
+--h = h + "</tr>",
+-,
+-h = h + "</tbody></table>",
+-back(h),
+,
+
+/* 侧栏导航 */
+def gui_side(items; current)-
+-h = "",
+-for it in items-
+--href = #get(it; "href"),
+--name = #get(it; "name"),
+--cls = "",
+--if href == current-
+---cls = " class=\"active\"",
+--,
+--h = h + "<a" + cls + " href=\"" + href + "\">" + gui_esc(name) + "</a>",
+-,
+-back(h),
+,
+
+/* JSON 响应封装 */
+def gui_json(v)-
+-back({"code": '200'; "type": "application/json; charset=utf-8"; "body": #json_encode(v)}),
+,

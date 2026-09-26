@@ -36,5 +36,23 @@
     "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-test/vesna-test-1.0.0.zip",
     "checksum": "5a2c52a8b3109f6ae5cf98153e89e4e66f3ea07ed285b9b07b2946484bacf9b7",
     "dependencies": {}
+  },
+  {
+    "name": "vesna-gui",
+    "version": "1.0.0",
+    "description": "Web GUI framework for Vesna: serve HTML pages, static assets and JSON APIs via pure-Vesna HTTP over TCP",
+    "license": "MIT",
+    "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-gui/vesna-gui-1.0.0.zip",
+    "checksum": "16186d14cc1c12ffbbaffebe6fd01b1b4266f83ea108dcc9757dc9a0b37a4e51",
+    "dependencies": {}
+  },
+  {
+    "name": "vesna-email",
+    "version": "1.0.0",
+    "description": "Email for Vesna: SMTP client (send mail, optional AUTH LOGIN) and a local mailbox server that saves .eml files",
+    "license": "MIT",
+    "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-email/vesna-email-1.0.0.zip",
+    "checksum": "da062b298b1b96bdd42fbb02a85b304e7efe2a195dcd41bc4324ea702020823a",
+    "dependencies": {}
   }
 ]
