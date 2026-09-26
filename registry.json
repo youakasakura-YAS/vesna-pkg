@@ -43,7 +43,7 @@
     "description": "Web GUI framework for Vesna: serve HTML pages, static assets and JSON APIs via pure-Vesna HTTP over TCP",
     "license": "MIT",
     "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-gui/vesna-gui-1.0.0.zip",
-    "checksum": "16186d14cc1c12ffbbaffebe6fd01b1b4266f83ea108dcc9757dc9a0b37a4e51",
+    "checksum": "9ad32c467bf068cd14eb7414a87859e5aba1541296fc7d3973772522059d08ed",
     "dependencies": {}
   },
   {
@@ -52,7 +52,7 @@
     "description": "Email for Vesna: SMTP client (send mail, optional AUTH LOGIN) and a local mailbox server that saves .eml files",
     "license": "MIT",
     "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-email/vesna-email-1.0.0.zip",
-    "checksum": "da062b298b1b96bdd42fbb02a85b304e7efe2a195dcd41bc4324ea702020823a",
+    "checksum": "f8a7d5f5dfdd94469727bcfb0b65afd02aee3f472d68a5327f4a9c5370201c49",
     "dependencies": {}
   }
 ]

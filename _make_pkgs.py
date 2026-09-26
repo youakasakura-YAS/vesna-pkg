@@ -36,6 +36,9 @@ for e in (e1, e2):
     if e['name'] not in names:
         reg.append(e)
         print('registry +=', e['name'])
+    else:
+        reg = [e if r['name'] == e['name'] else r for r in reg]
+        print('registry update', e['name'], e['checksum'])
 with io.open(reg_path, 'w', encoding='utf-8', newline='\n') as f:
     f.write(json.dumps(reg, ensure_ascii=False, indent=2))
 print('registry entries:', len(reg))
