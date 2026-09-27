@@ -3,7 +3,7 @@
    邮件发送 + 本地邮箱（纯 Vesna 实现，不依赖第三方库）
 
    Usage / 用法:
-     import email,
+     import vesna-email,
      # 发送邮件（支持 SMTP 与可选登录认证）
      smtp_send("smtp.example.com"; '587'; "user"; "pass"; "a@example.com"; "b@example.com"; "标题"; "正文"),
      # 启动本地邮箱（简化 SMTP 服务端，收信落盘为 .eml）

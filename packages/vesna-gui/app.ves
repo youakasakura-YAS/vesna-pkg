@@ -4,7 +4,7 @@
    运行 / Run:  vesna app.ves   ->  http://localhost:18081
    ============================================================ */
 
-import gui,
+import vesna-gui,
 
 root = #temp_dir() + "/vesna-webroot",
 #mkdirs(root),

@@ -23,7 +23,7 @@ vpm install vesna-gui
 Then in your script / 然后在脚本中：
 
 ```ves
-import gui,
+import vesna-gui,
 ```
 
 ## API

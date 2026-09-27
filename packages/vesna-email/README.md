@@ -24,7 +24,7 @@ vpm install vesna-email
 Then in your script / 然后在脚本中：
 
 ```ves
-import email,
+import vesna-email,
 ```
 
 ## API

@@ -3,7 +3,7 @@
    Web 图形化操作平台框架（纯 Vesna，零新增内置、零第三方库）
 
    Usage / 用法:
-     import gui,
+     import vesna-gui,
      routes = {"/": "page_home"; "/api/list": "api_list"},
      assets = {"/static/app.js": js},
      gui_serve('8080'; routes; assets),
