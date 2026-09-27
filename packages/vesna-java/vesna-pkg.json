@@ -1,0 +1,7 @@
+{
+  "name": "vesna-java",
+  "version": "1.0.0",
+  "description": "Java interop and Minecraft mod tooling for Vesna: environment check, run classes, Java/Gradle/Maven scaffolding, Fabric/Forge/NeoForge mod skeletons",
+  "entry": "java.ves",
+  "dependencies": {}
+}

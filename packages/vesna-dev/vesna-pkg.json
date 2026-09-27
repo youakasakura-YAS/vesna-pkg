@@ -1,0 +1,7 @@
+{
+  "name": "vesna-dev",
+  "version": "1.0.0",
+  "description": "General software development toolkit for Vesna: project scaffolding, README/LICENSE/.gitignore templates, semver increment, changelog, TODO scan, line counting",
+  "entry": "dev.ves",
+  "dependencies": {}
+}

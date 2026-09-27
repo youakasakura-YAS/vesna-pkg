@@ -1,0 +1,234 @@
+/* java - Java 互操作与 Minecraft 模组工具 for Vesna v1.0.0
+   需要 Vesna 2.6+（内置 #dir_walk / #url_parse 等）
+   usage: import java,
+   java_home() / java_check() / java_path() / java_run(...)
+   java_class(...) / gradle_project(...) / maven_pom(...)
+   mod_fabric(...) / mod_forge(...) / mod_neoforge(...) / mcmeta(...) */
+
+/* ---------- Java 环境 ---------- */
+
+/* JAVA_HOME 或 "" */
+def java_home()-
+-back(#getenv("JAVA_HOME")),
+,
+
+/* 检测环境 -> {java; javac; home} */
+def java_check()-
+-home = java_home(),
+-java_ok = false,
+-javac_ok = false,
+-if home != ""-
+--bin = home + "\\bin",
+--if #fexists(bin + "\\java.exe")-
+---java_ok = true,
+--if #fexists(bin + "\\javac.exe")-
+---javac_ok = true,
+-else-
+--if #fexists(home + "/bin/java")-
+---java_ok = true,
+--if #fexists(home + "/bin/javac")-
+---javac_ok = true,
+-,
+-back(#json_decode("{\"java\":" + #str(java_ok) + ",\"javac\":" + #str(javac_ok) + ",\"home\":\"" + home + "\"}")),
+,
+
+/* 可用的 java 可执行文件路径（找不到返回 "java" 由系统 PATH 解析） */
+def java_path()-
+-home = java_home(),
+-if home != ""-
+--if #fexists(home + "\\bin\\java.exe")-
+---back(home + "\\bin\\java.exe"),
+--if #fexists(home + "/bin/java")-
+---back(home + "/bin/java"),
+-back("java"),
+,
+
+/* 运行 Java 主类：java -cp <classpath> <main> [args...]，返回退出码 */
+def java_run(classpath; main_class; args_list)-
+-cmd = java_path() + " -cp \"" + classpath + "\" " + main_class,
+-for a in args_list-
+--cmd = cmd + " \"" + a + "\"",
+-,
+-back(#shell(cmd)),
+,
+
+/* ---------- 源码与项目生成 ---------- */
+
+/* 生成 Java 类源码（含构造器与 getter/setter） */
+def java_class(pkg; name; fields_list)-
+-src = "package " + pkg + ";\n\n",
+-src = src + "public class " + name + " {\n",
+-for f in fields_list-
+--src = src + "    private String " + f + ";\n",
+-,
+-src = src + "\n    public " + name + "() {\n    }\n",
+-src = src + "\n    public " + name + "(",
+-first = true,
+-for f in fields_list-
+--if not first-
+---src = src + ", ",
+--src = src + "String " + f,
+--first = false,
+-,
+-src = src + ") {\n",
+-for f in fields_list-
+--src = src + "        this." + f + " = " + f + ";\n",
+-,
+-src = src + "    }\n",
+-for f in fields_list-
+--cap = #capitalize(f),
+--src = src + "\n    public String get" + cap + "() { return " + f + "; }\n",
+--src = src + "    public void set" + cap + "(String " + f + ") { this." + f + " = " + f + "; }\n",
+-,
+-src = src + "}\n",
+-back(src),
+,
+
+/* 生成 Gradle Java 项目骨架（application 插件，可直接 gradle run） */
+def gradle_project(dir; name; main_class)-
+-#mkdirs(dir),
+-#fwrite(dir + "\\settings.gradle"; "rootProject.name = '" + name + "'\n"),
+-gb = "plugins {\n    id 'java'\n    id 'application'\n}\n\n",
+-gb = gb + "repositories {\n    mavenCentral()\n}\n\n",
+-gb = gb + "dependencies {\n    // 在此添加依赖\n}\n\n",
+-gb = gb + "application {\n    mainClass = '" + main_class + "'\n}\n",
+-#fwrite(dir + "\\build.gradle"; gb),
+-#fwrite(dir + "\\gradle.properties"; "org.gradle.jvmargs=-Xmx2g\n"),
+-back(true),
+,
+
+/* 生成 Maven pom.xml */
+def maven_pom(dir; group; artifact; ver; main_class)-
+-#mkdirs(dir),
+-pom = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n",
+-pom = pom + "<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n",
+-pom = pom + "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n",
+-pom = pom + "         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n",
+-pom = pom + "  <modelVersion>4.0.0</modelVersion>\n",
+-pom = pom + "  <groupId>" + group + "</groupId>\n",
+-pom = pom + "  <artifactId>" + artifact + "</artifactId>\n",
+-pom = pom + "  <version>" + ver + "</version>\n",
+-pom = pom + "  <packaging>jar</packaging>\n",
+-pom = pom + "  <properties>\n    <maven.compiler.source>17</maven.compiler.source>\n    <maven.compiler.target>17</maven.compiler.target>\n  </properties>\n",
+-pom = pom + "  <build>\n    <plugins>\n      <plugin>\n        <groupId>org.apache.maven.plugins</groupId>\n        <artifactId>maven-jar-plugin</artifactId>\n        <configuration>\n          <archive>\n            <manifest><mainClass>" + main_class + "</mainClass></manifest>\n          </archive>\n        </configuration>\n      </plugin>\n    </plugins>\n  </build>\n",
+-pom = pom + "</project>\n",
+-#fwrite(dir + "\\pom.xml"; pom),
+-back(true),
+,
+
+/* ---------- Minecraft 模组（mcmod） ---------- */
+
+/* Fabric 模组骨架：dir/src/main/{java,resources} + build.gradle */
+def mod_fabric(dir; id; name; ver; desc; pkg)-
+-jroot = dir + "\\src\\main",
+-#mkdirs(jroot + "\\java\\" + pkg),
+-#mkdirs(jroot + "\\resources"),
+-fm = "{\n",
+-fm = fm + "  \"schemaVersion\": 1,\n",
+-fm = fm + "  \"id\": \"" + id + "\",\n",
+-fm = fm + "  \"version\": \"" + ver + "\",\n",
+-fm = fm + "  \"name\": \"" + name + "\",\n",
+-fm = fm + "  \"description\": \"" + desc + "\",\n",
+-fm = fm + "  \"authors\": [\"youakasakura-YAS\"],\n",
+-fm = fm + "  \"license\": \"MIT\",\n",
+-fm = fm + "  \"environment\": \"*\",\n",
+-fm = fm + "  \"entrypoints\": {\"main\": [\"" + pkg + ".Main\"]},\n",
+-fm = fm + "  \"depends\": {\"fabricloader\": \">=0.16.0\", \"minecraft\": \"~1.21\", \"java\": \">=21\"}\n",
+-fm = fm + "}\n",
+-#fwrite(jroot + "\\resources\\fabric.mod.json"; fm),
+-cls = "package " + pkg + ";\n\n",
+-cls = cls + "import net.fabricmc.api.ModInitializer;\n\n",
+-cls = cls + "public class Main implements ModInitializer {\n",
+-cls = cls + "    @Override\n    public void onInitialize() {\n",
+-cls = cls + "        System.out.println(\"" + name + " loaded\");\n",
+-cls = cls + "    }\n}\n",
+-#fwrite(jroot + "\\java\\" + pkg + "\\Main.java"; cls),
+-gb = "plugins {\n    id 'fabric-loom' version '1.7-SNAPSHOT'\n    id 'java'\n}\n\n",
+-gb = gb + "version = \"" + ver + "\"\n",
+-gb = gb + "group = \"" + pkg + "\"\n\n",
+-gb = gb + "repositories { mavenCentral() }\n\n",
+-gb = gb + "dependencies {\n    minecraft \"com.mojang:minecraft:1.21\"\n",
+-gb = gb + "    modImplementation \"net.fabricmc:fabric-loader:0.16.0\"\n",
+-gb = gb + "    modImplementation \"net.fabricmc.fabric-api:fabric-api:0.103.0+1.21\"\n}\n\n",
+-gb = gb + "java { sourceCompatibility = JavaVersion.VERSION_21 }\n",
+-#fwrite(dir + "\\build.gradle"; gb),
+-#fwrite(dir + "\\settings.gradle"; "rootProject.name = '" + id + "'\n"),
+-back(true),
+,
+
+/* Forge 模组骨架：mods.toml + 主类 + build.gradle（forgegradle 1.20.4） */
+def mod_forge(dir; id; name; ver; desc; pkg)-
+-jroot = dir + "\\src\\main",
+-#mkdirs(jroot + "\\java\\" + pkg),
+-#mkdirs(jroot + "\\resources\\META-INF"),
+-mt = "modLoader=\"javafml\"\n",
+-mt = mt + "loaderVersion=\"[49,)\"\n",
+-mt = mt + "license=\"MIT\"\n\n",
+-mt = mt + "[[mods]]\n",
+-mt = mt + "modId=\"" + id + "\"\n",
+-mt = mt + "version=\"" + ver + "\"\n",
+-mt = mt + "displayName=\"" + name + "\"\n",
+-mt = mt + "description='''" + desc + "'''\n\n",
+-mt = mt + "[[dependencies." + id + "]]\n",
+-mt = mt + "modId=\"forge\"\n",
+-mt = mt + "mandatory=true\n",
+-mt = mt + "versionRange=\"[49,)\"\n",
+-mt = mt + "ordering=\"AFTER\"\n",
+-mt = mt + "side=\"BOTH\"\n",
+-#fwrite(jroot + "\\resources\\META-INF\\mods.toml"; mt),
+-cls = "package " + pkg + ";\n\n",
+-cls = cls + "import net.minecraftforge.fml.common.Mod;\n\n",
+-cls = cls + "@Mod(\"" + id + "\")\n",
+-cls = cls + "public class Main {\n",
+-cls = cls + "    public Main() {\n        System.out.println(\"" + name + " loaded\");\n    }\n}\n",
+-#fwrite(jroot + "\\java\\" + pkg + "\\Main.java"; cls),
+-gb = "plugins {\n    id 'net.minecraftforge.gradle' version '[6.0,6.2)'\n    id 'org.parchmentmc.librarian.forgegradle' version '1.+'\n}\n\n",
+-gb = gb + "version = \"" + ver + "\"\n",
+-gb = gb + "group = \"" + pkg + "\"\n\n",
+-gb = gb + "minecraft {\n    mappings channel: 'parchment', version: '2024.06.23-1.20.4'\n}\n\n",
+-gb = gb + "dependencies {\n    minecraft 'net.minecraftforge:forge:1.20.4-49.0.0'\n}\n",
+-#fwrite(dir + "\\build.gradle"; gb),
+-#fwrite(dir + "\\settings.gradle"; "rootProject.name = '" + id + "'\n"),
+-back(true),
+,
+
+/* NeoForge 模组骨架：neoforge.mods.toml + 主类 + build.gradle */
+def mod_neoforge(dir; id; name; ver; desc; pkg)-
+-jroot = dir + "\\src\\main",
+-#mkdirs(jroot + "\\java\\" + pkg),
+-#mkdirs(jroot + "\\resources\\META-INF"),
+-mt = "modLoader=\"javafml\"\n",
+-mt = mt + "loaderVersion=\"[2,)\"\n",
+-mt = mt + "license=\"MIT\"\n\n",
+-mt = mt + "[[mods]]\n",
+-mt = mt + "modId=\"" + id + "\"\n",
+-mt = mt + "version=\"" + ver + "\"\n",
+-mt = mt + "displayName=\"" + name + "\"\n",
+-mt = mt + "description='''" + desc + "'''\n\n",
+-mt = mt + "[[dependencies." + id + "]]\n",
+-mt = mt + "modId=\"neoforge\"\n",
+-mt = mt + "mandatory=true\n",
+-mt = mt + "versionRange=\"[21,)\"\n",
+-mt = mt + "ordering=\"AFTER\"\n",
+-mt = mt + "side=\"BOTH\"\n",
+-#fwrite(jroot + "\\resources\\META-INF\\neoforge.mods.toml"; mt),
+-cls = "package " + pkg + ";\n\n",
+-cls = cls + "import net.neoforged.bus.api.IEventBus;\n",
+-cls = cls + "import net.neoforged.fml.common.Mod;\n\n",
+-cls = cls + "@Mod(\"" + id + "\")\n",
+-cls = cls + "public class Main {\n",
+-cls = cls + "    public Main(IEventBus bus) {\n        System.out.println(\"" + name + " loaded\");\n    }\n}\n",
+-#fwrite(jroot + "\\java\\" + pkg + "\\Main.java"; cls),
+-gb = "plugins {\n    id 'net.neoforged.moddev' version '1.0.+'\n}\n\n",
+-gb = gb + "version = \"" + ver + "\"\n",
+-gb = gb + "group = \"" + pkg + "\"\n\n",
+-gb = gb + "neoForge {\n    version = '21.1.0'\n}\n",
+-#fwrite(dir + "\\build.gradle"; gb),
+-#fwrite(dir + "\\settings.gradle"; "rootProject.name = '" + id + "'\n"),
+-back(true),
+,
+
+/* mcmod 百科条目 JSON */
+def mcmeta(modid; name; desc)-
+-back(#json_decode("{\"modid\":\"" + modid + "\",\"name\":\"" + name + "\",\"description\":\"" + desc + "\"}")),
+,

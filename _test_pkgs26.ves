@@ -1,0 +1,74 @@
+/* 2.6 三包冒烟测试：vesna-java / vesna-android / vesna-dev */
+import vesna-java,
+import vesna-android,
+import vesna-dev,
+
+/* ---- vesna-java ---- */
+jh = java_home(),
+print("java_home: " + jh),
+jc = java_check(),
+print("java_check java: " + #str(jc["java"]) + " javac: " + #str(jc["javac"])),
+cs = java_class("com.demo"; "Person"; ["name"; "age"]),
+if #contains(cs; "public class Person") and #contains(cs; "getName")-
+-print("PASS java_class"),
+else-
+-print("FAIL java_class"),
+-,
+okf = mod_fabric("_t26_mod"; "mymod"; "My Mod"; "1.0.0"; "A demo"; "com.example.mymod"),
+if okf and #fexists("_t26_mod\\src\\main\\resources\\fabric.mod.json") and #fexists("_t26_mod\\src\\main\\java\\com.example.mymod\\Main.java")-
+-print("PASS mod_fabric"),
+else-
+-print("FAIL mod_fabric"),
+-,
+okg = gradle_project("_t26_gradle"; "demo"; "com.demo.Main"),
+if okg and #fexists("_t26_gradle\\build.gradle")-
+-print("PASS gradle_project"),
+else-
+-print("FAIL gradle_project"),
+-,
+
+/* ---- vesna-android ---- */
+oka = android_project("_t26_android"; "com.example.app"; "App"; "24"; "34"),
+if oka and #fexists("_t26_android\\app\\src\\main\\AndroidManifest.xml") and #fexists("_t26_android\\app\\src\\main\\java\\com.example.app\\MainActivity.java")-
+-print("PASS android_project"),
+else-
+-print("FAIL android_project"),
+-,
+pm = android_permissions(),
+if #has_key(pm; "INTERNET")-
+-print("PASS android_permissions"),
+else-
+-print("FAIL android_permissions"),
+-,
+
+/* ---- vesna-dev ---- */
+v = dev_semver_inc("1.2.3"; "minor"),
+if v == "1.3.0"-
+-print("PASS semver minor"),
+else-
+-print("FAIL semver minor " + v),
+-,
+v2 = dev_semver_inc("1.2.3"; "major"),
+if v2 == "2.0.0"-
+-print("PASS semver major"),
+else-
+-print("FAIL semver major " + v2),
+-,
+lg = dev_log("hello"),
+if #startswith(lg; "[") and #endswith(lg; "hello")-
+-print("PASS dev_log"),
+else-
+-print("FAIL dev_log"),
+-,
+lc = dev_line_count("_t26_android"),
+if lc["files"] > '0' and lc["lines"] > '0'-
+-print("PASS dev_line_count"),
+else-
+-print("FAIL dev_line_count"),
+-,
+sc = dev_scaffold("_t26_scr"; "demo"; "python"),
+if sc and #fexists("_t26_scr\\README.md") and #fexists("_t26_scr\\.gitignore") and #fexists("_t26_scr\\LICENSE")-
+-print("PASS dev_scaffold"),
+else-
+-print("FAIL dev_scaffold"),
+-,

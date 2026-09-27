@@ -1,0 +1,7 @@
+{
+  "name": "vesna-android",
+  "version": "1.0.0",
+  "description": "Android development toolkit for Vesna: full project scaffolding (Gradle, Manifest, Activity, resources), build helper and signing info",
+  "entry": "android.ves",
+  "dependencies": {}
+}

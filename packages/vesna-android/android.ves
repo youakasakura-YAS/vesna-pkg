@@ -1,0 +1,131 @@
+/* android - Android 开发工具包 for Vesna v1.0.0
+   需要 Vesna 2.6+
+   usage: import android,
+   android_project(...) / android_build(...) / android_manifest(...)
+   android_activity(...) / android_strings(...) / android_gradle(...)
+   android_permissions(...) / android_sign_info() */
+
+/* ---------- 项目骨架 ---------- */
+
+/* 生成完整 Android 项目骨架
+   android_project(dir; app_id; app_name; min_sdk; target_sdk)
+   生成 settings.gradle / build.gradle / app/ 结构与 MainActivity */
+def android_project(dir; app_id; app_name; min_sdk; target_sdk)-
+-pkg = app_id,
+-#mkdirs(dir),
+-#fwrite(dir + "\\settings.gradle"; "rootProject.name = '" + app_name + "'\ninclude ':app'\n"),
+-/* 根 build.gradle */
+-rb = "// Top-level build file\n",
+-rb = rb + "plugins {\n    id 'com.android.application' version '8.5.2' apply false\n}\n",
+-#fwrite(dir + "\\build.gradle"; rb),
+-#fwrite(dir + "\\gradle.properties"; "org.gradle.jvmargs=-Xmx2g\nandroid.useAndroidX=true\n"),
+-/* app 模块 */
+-ap = dir + "\\app",
+-#mkdirs(ap + "\\src\\main\\java\\" + pkg),
+-#mkdirs(ap + "\\src\\main\\res\\values"),
+-/* app/build.gradle */
+-ag = "plugins {\n    id 'com.android.application'\n}\n\n",
+-ag = ag + "android {\n    namespace '" + pkg + "'\n",
+-ag = ag + "    compileSdk " + target_sdk + "\n\n",
+-ag = ag + "    defaultConfig {\n        applicationId \"" + pkg + "\"\n",
+-ag = ag + "        minSdk " + min_sdk + "\n        targetSdk " + target_sdk + "\n",
+-ag = ag + "        versionCode 1\n        versionName \"1.0\"\n    }\n\n",
+-ag = ag + "    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }\n}\n",
+-ag = ag + "dependencies {\n    implementation 'androidx.appcompat:appcompat:1.7.0'\n}\n",
+-#fwrite(ap + "\\build.gradle"; ag),
+-/* AndroidManifest.xml */
+-man = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+-man = man + "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n",
+-man = man + "    <application android:label=\"@string/app_name\">\n",
+-man = man + "        <activity android:name=\".MainActivity\" android:exported=\"true\">\n",
+-man = man + "            <intent-filter>\n",
+-man = man + "                <action android:name=\"android.intent.action.MAIN\" />\n",
+-man = man + "                <category android:name=\"android.intent.category.LAUNCHER\" />\n",
+-man = man + "            </intent-filter>\n",
+-man = man + "        </activity>\n",
+-man = man + "    </application>\n",
+-man = man + "</manifest>\n",
+-#fwrite(ap + "\\src\\main\\AndroidManifest.xml"; man),
+-/* strings.xml */
+-st = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+-st = st + "<resources>\n    <string name=\"app_name\">" + app_name + "</string>\n</resources>\n",
+-#fwrite(ap + "\\src\\main\\res\\values\\strings.xml"; st),
+-/* 主题（AppCompat 默认） */
+-th = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+-th = th + "<resources>\n    <style name=\"Theme.AppName\" parent=\"Theme.AppCompat.DayNight\">\n    </style>\n</resources>\n",
+-#fwrite(ap + "\\src\\main\\res\\values\\themes.xml"; th),
+-/* MainActivity.java */
+-act = "package " + pkg + ";\n\n",
+-act = act + "import android.app.Activity;\n",
+-act = act + "import android.os.Bundle;\n\n",
+-act = act + "public class MainActivity extends Activity {\n",
+-act = act + "    @Override\n    protected void onCreate(Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        setContentView(R.layout.activity_main);\n    }\n}\n",
+-#fwrite(ap + "\\src\\main\\java\\" + pkg + "\\MainActivity.java"; act),
+-/* 布局占位 */
+-#mkdirs(ap + "\\src\\main\\res\\layout"),
+-lay = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+-lay = lay + "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n",
+-lay = lay + "    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\">\n",
+-lay = lay + "    <TextView android:text=\"Hello Vesna\"\n        android:layout_width=\"wrap_content\"\n        android:layout_height=\"wrap_content\" />\n",
+-lay = lay + "</LinearLayout>\n",
+-#fwrite(ap + "\\src\\main\\res\\layout\\activity_main.xml"; lay),
+-/* .gitignore */
+-gi = ".gradle/\nbuild/\nlocal.properties\n*.iml\n.idea/\n",
+-#fwrite(dir + "\\.gitignore"; gi),
+-back(true),
+,
+
+/* 单独生成 AndroidManifest.xml（可覆盖骨架默认） */
+def android_manifest(pkg; app_name)-
+-man = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+-man = man + "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\" package=\"" + pkg + "\">\n",
+-man = man + "    <application android:label=\"" + app_name + "\">\n",
+-man = man + "    </application>\n",
+-man = man + "</manifest>\n",
+-back(man),
+,
+
+/* 生成 MainActivity.java 源码（不落盘） */
+def android_activity(pkg; name)-
+-act = "package " + pkg + ";\n\n",
+-act = act + "import android.app.Activity;\n",
+-act = act + "import android.os.Bundle;\n\n",
+-act = act + "public class " + name + " extends Activity {\n",
+-act = act + "    @Override\n    protected void onCreate(Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n    }\n}\n",
+-back(act),
+,
+
+/* 生成 strings.xml 源码（不落盘） */
+def android_strings(app_name)-
+-back("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <string name=\"app_name\">" + app_name + "</string>\n</resources>\n"),
+,
+
+/* 生成 app/build.gradle 源码（不落盘） */
+def android_gradle(pkg; min_sdk; target_sdk)-
+-ag = "plugins {\n    id 'com.android.application'\n}\n\n",
+-ag = ag + "android {\n    namespace '" + pkg + "'\n",
+-ag = ag + "    compileSdk " + target_sdk + "\n\n",
+-ag = ag + "    defaultConfig {\n        applicationId \"" + pkg + "\"\n",
+-ag = ag + "        minSdk " + min_sdk + "\n        targetSdk " + target_sdk + "\n",
+-ag = ag + "        versionCode 1\n        versionName \"1.0\"\n    }\n}\n",
+-back(ag),
+,
+
+/* ---------- 构建与权限 ---------- */
+
+/* 运行 gradlew assembleDebug（需项目已含 gradle wrapper），返回退出码 */
+def android_build(dir)-
+-if #fexists(dir + "\\gradlew.bat")-
+--back(#shell("cd /d \"" + dir + "\" && gradlew.bat assembleDebug")),
+-back(#shell("cd /d \"" + dir + "\" && gradle assembleDebug")),
+,
+
+/* 常用权限说明表（Android 危险权限 -> 用途） */
+def android_permissions()-
+-back(#json_decode("{\"INTERNET\":\"网络访问\",\"CAMERA\":\"相机\",\"RECORD_AUDIO\":\"录音\",\"ACCESS_FINE_LOCATION\":\"精确定位\",\"READ_EXTERNAL_STORAGE\":\"读存储\",\"WRITE_EXTERNAL_STORAGE\":\"写存储\",\"READ_CONTACTS\":\"读联系人\"}")),
+,
+
+/* 签名配置说明（文本，供手动配置 keystore） */
+def android_sign_info()-
+-back("keytool -genkeypair -v -keystore app.keystore -alias vesna -keyalg RSA -keysize 2048 -validity 10000\nstoreFile=app.keystore\nstorePassword=<密码>\nkeyAlias=vesna\nkeyPassword=<密码>\n写入 gradle.properties 并在 app/build.gradle 的 signingConfigs 引用"),
+,

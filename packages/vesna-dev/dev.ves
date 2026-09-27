@@ -1,0 +1,145 @@
+/* dev - 通用软件开发工具包 for Vesna v1.0.0
+   需要 Vesna 2.6+（内置 #dir_walk / #hash_file）
+   usage: import dev,
+   dev_scaffold(...) / dev_readme(...) / dev_license_mit(...) / dev_gitignore(...)
+   dev_semver_inc(...) / dev_changelog_add(...) / dev_log(...)
+   dev_todo_scan(...) / dev_line_count(...) / dev_env(...) */
+
+/* ---------- 项目脚手架 ---------- */
+
+/* 通用项目脚手架：README + LICENSE + .gitignore + src 目录 */
+def dev_scaffold(dir; name; lang)-
+-#mkdirs(dir),
+-#fwrite(dir + "\\README.md"; dev_readme(name; "TODO: description"; "zh")),
+-#fwrite(dir + "\\LICENSE"; dev_license_mit("youakasakura-YAS"; "2026")),
+-#fwrite(dir + "\\.gitignore"; dev_gitignore(lang)),
+-#mkdirs(dir + "\\src"),
+-back(true),
+,
+
+/* README 模板（lang: zh/en） */
+def dev_readme(name; desc; lang)-
+-if lang == "en"-
+--back("# " + name + "\n\n" + desc + "\n\n## Usage\n\n```\nTODO\n```\n\n## License\n\nMIT\n"),
+-back("# " + name + "\n\n" + desc + "\n\n## 使用\n\n```\nTODO\n```\n\n## 许可证\n\nMIT\n"),
+,
+
+/* MIT 许可证文本 */
+def dev_license_mit(author; year)-
+-back("MIT License\n\nCopyright (c) " + year + " " + author + "\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"),
+,
+
+/* .gitignore 模板（lang: python/java/node/cpp/go/rust/通用） */
+def dev_gitignore(lang)-
+-if lang == "python"-
+--back("__pycache__/\n*.py[cod]\n.venv/\nvenv/\n.env\ndist/\nbuild/\n*.egg-info/\n"),
+-if lang == "java"-
+--back("build/\ntarget/\n.gradle/\n*.class\n.idea/\n*.iml\n"),
+-if lang == "node"-
+--back("node_modules/\ndist/\n.env\n*.log\n.DS_Store\n"),
+-if lang == "cpp"-
+--back("build/\n*.o\n*.obj\n*.exe\n.vs/\n"),
+-if lang == "go"-
+--back("bin/\n*.exe\n.env\nvendor/\n"),
+-if lang == "rust"-
+--back("target/\nCargo.lock\n"),
+-back(".DS_Store\n*.log\n.env\n"),
+,
+
+/* ---------- 版本与变更 ---------- */
+
+/* 语义化版本自增：dev_semver_inc("1.2.3"; "major|minor|patch") */
+def dev_semver_inc(ver; part)-
+-parts = #split(ver; "."),
+-if #len(parts) < '3'-
+--back(ver),
+-,
+-i = '1',
+-if part == "major"-
+--i = '1',
+-elif part == "minor"-
+--i = '2',
+-else-
+--i = '3',
+-,
+-nv = #int(parts[i]) + '1',
+-out = [],
+-for k in ['1';'2';'3']-
+--if k == i-
+---#append(out; #str(nv)),
+--elif k == '2' and part == "major"-
+---#append(out; "0"),
+--elif k == '3' and (part == "major" or part == "minor")-
+---#append(out; "0"),
+--else-
+---#append(out; parts[k]),
+---,
+-,
+-back(#join(out; ".")),
+,
+
+/* 追加 changelog 条目：dev_changelog_add(file; ver; date; entries_list) */
+def dev_changelog_add(file; ver; date; entries_list)-
+-block = "## " + ver + " (" + date + ")\n\n",
+-for e in entries_list-
+--block = block + "- " + e + "\n",
+-,
+-block = block + "\n",
+-old = "",
+-if #fexists(file)-
+--old = #fread(file),
+-#fwrite(file; block + old),
+-back(true),
+,
+
+/* ---------- 工具 ---------- */
+
+/* 带时间戳日志：dev_log("msg") */
+def dev_log(msg)-
+-ts = #date_format(#now(); "%Y-%m-%d %H:%M:%S"),
+-back("[" + ts + "] " + msg),
+,
+
+/* 递归扫描 TODO/FIXME 注释 -> 文件路径列表 */
+def dev_todo_scan(dir)-
+-out = [],
+-files = #dir_walk(dir),
+-for f in files-
+--if #endswith(f; ".ves") or #endswith(f; ".py") or #endswith(f; ".cpp") or #endswith(f; ".c") or #endswith(f; ".h") or #endswith(f; ".java") or #endswith(f; ".js") or #endswith(f; ".ts")-
+---txt = #fread(f),
+---if #contains(txt; "TODO") or #contains(txt; "FIXME")-
+----#append(out; f),
+---,
+---,
+-,
+-back(out),
+,
+
+/* 递归统计代码行数 -> {files; lines} */
+def dev_line_count(dir)-
+-total_files = '0',
+-total_lines = '0',
+-files = #dir_walk(dir),
+-for f in files-
+--ext = "",
+--pos = #rfind(f; "."),
+--if pos > '0'-
+---ext = #sub(f; pos; #len(f)),
+--if ext == ".ves" or ext == ".py" or ext == ".cpp" or ext == ".c" or ext == ".h" or ext == ".java" or ext == ".js" or ext == ".ts" or ext == ".md" or ext == ".txt"-
+---total_files = total_files + '1',
+---txt = #fread(f),
+---n = #len(#lines(txt)),
+---total_lines = total_lines + n,
+---,
+---,
+-,
+-back(#json_decode("{\"files\":" + #str(total_files) + ",\"lines\":" + #str(total_lines) + "}")),
+,
+
+/* 环境变量读取带默认值 */
+def dev_env(name; dflt)-
+-v = #getenv(name),
+-if v == ""-
+--back(dflt),
+-back(v),
+,
