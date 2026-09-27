@@ -1,7 +1,7 @@
 {
   "name": "vesna-mc",
-  "version": "1.1.0",
-  "description": "Minecraft bridge mod generator for Vesna: builds a complete Fabric / Forge / NeoForge mod (MC 1.20.1+) with event system (join/death/kill/block/chat/advancement/tick), action system (message/command/give/kick/effect/tp/sound/log) and periodic timers, all driven by Vesna scripts",
+  "version": "1.2.0",
+  "description": "Minecraft bridge mod generator for Vesna: builds a complete Fabric / Forge / NeoForge mod (MC 1.20.1+) with event system (join/death/kill/block/chat/advancement/tick), action system (message/command/give/kick/effect/tp/sound/log) and periodic timers and resident process mode (long-lived vesna child, stdin/stdout JSON protocol, event functions _on_<event>), all driven by Vesna scripts",
   "entry": "mc.ves",
   "dependencies": {}
 }

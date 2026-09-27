@@ -1,8 +1,12 @@
 package @@PKG@@;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.BufferedWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -48,6 +52,8 @@ public final class VesnaBridge {
     public static final String EVENTS_FILE = "events.json";
     public static final String RUNTIME_PROPS = "runtime.properties";
     public static final long TIMEOUT_SECONDS = 30;
+
+    private ResidentBridge resident;
 
     /**
      * Actions a script may request. Implemented by the platform entrypoint
@@ -232,6 +238,45 @@ public final class VesnaBridge {
         }
     }
 
+    // ---------- resident process mode ----------
+
+    /** True when a resident vesna process is running. */
+    public synchronized boolean residentActive() {
+        return resident != null;
+    }
+
+    /** Whether events.json enables resident mode. */
+    public boolean residentEnabled() {
+        return Boolean.TRUE.equals(events.get("resident"));
+    }
+
+    /** Spawn the resident process (config/vesna/scripts/resident.ves) once. */
+    public synchronized void startResident(ActionSink sink) {
+        if (resident != null) return;
+        if (vesnaPath == null) {
+            System.err.println("[vesna-mc] vesna runtime not found (set vesna.path or VESNA_HOME)");
+            return;
+        }
+        try {
+            resident = new ResidentBridge(runtimeDir, vesnaPath, sink);
+        } catch (IOException e) {
+            System.err.println("[vesna-mc] cannot start resident: " + e.getMessage());
+        }
+    }
+
+    /** Send one event to the resident process (no-op when not running). */
+    public synchronized void sendResident(String event, Map<String, Object> payload) {
+        if (resident != null) resident.sendEvent(event, payload);
+    }
+
+    /** Stop the resident process. */
+    public synchronized void stopResident() {
+        if (resident != null) {
+            resident.close();
+            resident = null;
+        }
+    }
+
     // ---------- helpers ----------
 
     public static String str(Object v) {
@@ -344,5 +389,79 @@ public final class VesnaBridge {
             }
         }
         return null;
+    }
+}
+
+/**
+ * Resident process bridge: a long-lived `vesna resident.ves` child process.
+ *
+ * Protocol (newline-delimited JSON):
+ *   request : {"id": N, "event": "...", "payload": {...}}
+ *   response: {"id": N, "result": {...}}
+ *
+ * The response thread executes the returned result through the ActionSink
+ * (same action format as one-shot mode).
+ */
+final class ResidentBridge implements AutoCloseable {
+    private final Process proc;
+    private final BufferedWriter stdin;
+    private final Thread reader;
+    private final ActionSink sink;
+    private long nextId;
+    private volatile boolean closed;
+
+    ResidentBridge(File scriptsDir, String vesnaPath, ActionSink sink) throws IOException {
+        this.sink = sink;
+        ProcessBuilder pb = new ProcessBuilder(vesnaPath, "resident.ves");
+        pb.directory(scriptsDir);
+        pb.redirectErrorStream(true);
+        proc = pb.start();
+        stdin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream(), StandardCharsets.UTF_8));
+        BufferedReader stdout = new BufferedReader(new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8));
+        reader = new Thread(new Runnable() {
+            public void run() { readLoop(stdout); }
+        }, "vesna-resident");
+        reader.setDaemon(true);
+        reader.start();
+    }
+
+    private void readLoop(BufferedReader stdout) {
+        try {
+            String line;
+            while (!closed && (line = stdout.readLine()) != null) {
+                String t = line.trim();
+                if (t.isEmpty()) continue;
+                try {
+                    Object v = VesnaJson.parse(t);
+                    if (v instanceof Map) {
+                        Object res = ((Map<?, ?>) v).get("result");
+                        if (res instanceof Map) {
+                            VesnaBridge.runActions(sink, VesnaJson.cast(res));
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (IOException ignored) {}
+    }
+
+    synchronized void sendEvent(String event, Map<String, Object> payload) {
+        if (closed) return;
+        Map<String, Object> req = new LinkedHashMap<String, Object>();
+        req.put("id", ++nextId);
+        req.put("event", event);
+        req.put("payload", payload == null ? new LinkedHashMap<String, Object>() : payload);
+        try {
+            stdin.write(VesnaJson.encode(req));
+            stdin.newLine();
+            stdin.flush();
+        } catch (IOException e) {
+            System.err.println("[vesna-mc] resident write failed: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void close() {
+        closed = true;
+        try { proc.destroy(); } catch (Exception ignored) {}
     }
 }

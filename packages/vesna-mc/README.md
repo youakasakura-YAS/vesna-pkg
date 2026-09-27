@@ -15,7 +15,7 @@ mc_bridge("F:\\my-mod"; "fabric"; "vesnamc"; "Vesna MC"; "com.example.vesnamc"; 
 
 ## 事件系统
 
-脚本由 `config/vesna/events.json` 映射事件。生成项目内置以下事件：
+脚本由 `config/vesna/events.json` 映射事件。`"resident": true` 启用常驻进程模式。生成项目内置以下事件：
 
 | 事件 | payload | 触发时机 |
 | --- | --- | --- |
@@ -60,9 +60,26 @@ mc_bridge("F:\\my-mod"; "fabric"; "vesnamc"; "Vesna MC"; "com.example.vesnamc"; 
 - `/<modid> <script> [args...]` 直接执行指定脚本
 - `/<modid>-reload` 重载 events.json（含 timers）
 
+## 运行模式
+
+### 常驻进程模式（默认）
+
+`events.json` 置 `"resident": true`（默认已开启）后，模组启动时拉起一个常驻 `vesna` 进程（`config/vesna/scripts/resident.ves`）：
+
+- **协议**：stdin 每行一个 JSON 请求 `{"id": N, "event": "...", "payload": {...}}`；stdout 每行一个 JSON 响应 `{"id": N, "result": {...}}`
+- **事件函数**：resident.ves 内置 `_on_<event>(payload)` 函数（由事件脚本模板自动转换，print 改为 return），收到事件即分发
+- **动作执行**：响应中的 result 由模组侧 `runActions` 执行（8 类动作与单次模式一致）
+- **适用**：`server_tick` 等高频事件——进程常驻、一次启动，无冷启动开销
+
+> 定时任务与 `/modid <script>` 命令仍走单次进程（频率低，无需常驻）。
+
+### 单次进程模式
+
+将 `events.json` 的 `"resident"` 改为 `false`（或删除），回到逐事件启动短生命周期 `vesna` 进程（30s 超时）的旧模式。
+
 ## 运行机制
 
-- **进程桥**：每个事件/命令/定时触发启动短生命周期 `vesna` 进程（30s 超时）；脚本 `argv[1]` 收 JSON payload，`stdout` 最后一行 JSON 为返回结果。
+- **进程桥**：常驻模式一个长生命周期进程；单次模式每个事件/命令/定时触发启动短生命周期 `vesna` 进程（30s 超时）；脚本 `argv[1]` 收 JSON payload，`stdout` 最后一行 JSON 为返回结果。
 - **定位运行时**：`config/vesna/runtime.properties` 的 `vesna.path` → 环境变量 `VESNA_HOME` → PATH。
 - **数据持久化**：脚本可直接读写 `config/vesna/data/` 下的文件（如 `#fwrite`/`#fread` 做计数、配置、经济数据）。
 

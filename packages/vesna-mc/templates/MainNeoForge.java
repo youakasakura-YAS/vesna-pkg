@@ -76,11 +76,13 @@ public class @@MAIN@@ implements VesnaBridge.ActionSink {
     public void onServerStarted(ServerStartedEvent event) {
         this.server = event.getServer();
         bridge.startTimers(this);
+        if (bridge.residentEnabled()) bridge.startResident(this);
         fireWith("server_started", new LinkedHashMap<>());
     }
 
     @SubscribeEvent
     public void onServerStopping(ServerStoppingEvent event) {
+        bridge.stopResident();
         fireWith("server_stopped", new LinkedHashMap<>());
         bridge.stopTimers();
     }
@@ -173,7 +175,8 @@ public class @@MAIN@@ implements VesnaBridge.ActionSink {
     // ---------- event dispatch ----------
 
     private void fireWith(String event, Map<String, Object> payload) {
-        bridge.fireWithActions(this, event, payload);
+        if (bridge.residentActive()) bridge.sendResident(event, payload);
+        else bridge.fireWithActions(this, event, payload);
     }
 
     private Map<String, Object> playerPayload(ServerPlayer p) {

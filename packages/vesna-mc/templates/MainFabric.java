@@ -72,9 +72,11 @@ public class @@MAIN@@ implements ModInitializer, VesnaBridge.ActionSink {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             this.server = server;
             bridge.startTimers(this);
+            if (bridge.residentEnabled()) bridge.startResident(this);
             fireWith("server_started", new LinkedHashMap<>());
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            bridge.stopResident();
             fireWith("server_stopped", new LinkedHashMap<>());
             bridge.stopTimers();
         });
@@ -148,7 +150,8 @@ public class @@MAIN@@ implements ModInitializer, VesnaBridge.ActionSink {
     // ---------- event dispatch ----------
 
     private void fireWith(String event, Map<String, Object> payload) {
-        bridge.fireWithActions(this, event, payload);
+        if (bridge.residentActive()) bridge.sendResident(event, payload);
+        else bridge.fireWithActions(this, event, payload);
     }
 
     private Map<String, Object> playerPayload(ServerPlayerEntity p) {

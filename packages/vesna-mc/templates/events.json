@@ -1,4 +1,5 @@
 {
+  "resident": true,
   "server_started": { "script": "server_started.ves" },
   "server_stopped": { "script": "server_stopped.ves" },
   "player_join": { "script": "player_join.ves" },

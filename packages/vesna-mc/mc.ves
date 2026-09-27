@@ -44,6 +44,60 @@ def mc_copy_config(dir)-
 -back(true),
 ,
 
+/* 事件脚本 -> 常驻函数：去掉 argv/payload 解析，print(#json_encode(X)) 改 return X */
+def mc_to_func(name; script)-
+-r = "def " + name + "(payload)-",
+-for line in #lines(script)-
+--t = #trim(line),
+--if t == ""-
+---continue,
+--,
+--if #startswith(t; "args = #args(),") or #startswith(t; "payload = #json_decode(args")-
+---continue,
+--,
+--nl = "-" + line,
+--if #contains(t; "print(#json_encode(") and #endswith(t; ")),")-
+---nl = #replace(nl; "print(#json_encode("; "back("),
+---nl = #replace(nl; ")),"; "),"),
+--,
+--r = r + "\n" + nl,
+-,
+-back(r),
+,
+
+/* 生成常驻脚本 resident.ves（events.json 置 "resident": true 时模组以子进程启动它） */
+def mc_make_resident(dir)-
+-tmpl = mc_tmpl_dir(),
+-rd = "/* Vesna 常驻桥 —— 由模组以子进程方式启动（events.json 的 \"resident\": true）\n",
+-rd = rd + "   协议：stdin 每行一个 JSON 请求 {\"id\": N; \"event\": \"...\"; \"payload\": {...}}\n",
+-rd = rd + "         stdout 每行一个 JSON 响应 {\"id\": N; \"result\": {...}}\n",
+-rd = rd + "   事件函数 _on_<event>(payload) 返回结果 dict/actions，主循环负责分发 */\n",
+-events = ["server_started"; "server_stopped"; "player_join"; "player_leave"; "player_death"; "player_kill"; "block_break"; "block_place"; "player_chat"; "player_advancement"; "server_tick"; "timer_example"],
+-for ev in events-
+--rd = rd + "\n" + mc_to_func("_on_" + ev; #fread(tmpl + ev + ".ves")),
+-,
+-rd = rd + "\n/* 主循环：一行请求一行响应 */\n",
+-rd = rd + "while '1'-\n",
+-rd = rd + "-line = #readline(),\n",
+-rd = rd + "-if line == \"\"-\n",
+-rd = rd + "--break,\n",
+-rd = rd + "--,\n",
+-rd = rd + "-req = #json_decode(line),\n",
+-rd = rd + "-id = req[\"id\"],\n",
+-rd = rd + "-ev = req[\"event\"],\n",
+-rd = rd + "-payload = req[\"payload\"],\n",
+-rd = rd + "-result = {},\n",
+-rd = rd + "-try-\n",
+-rd = rd + "--result = #call(\"_on_\" + ev; payload),\n",
+-rd = rd + "-catch e-\n",
+-rd = rd + "--result = {\"error\": e},\n",
+-rd = rd + "--,\n",
+-rd = rd + "-print(#json_encode({\"id\": id; \"result\": result})),\n",
+-rd = rd + "-,\n",
+-#fwrite(dir + "\\config\\vesna\\scripts\\resident.ves"; rd),
+-back(true),
+,
+
 /* ---------- Fabric ---------- */
 def mc_fabric(dir; modid; name; ver; pkg; mcver)-
 -jroot = dir + "\\src\\main",
@@ -192,8 +246,9 @@ def mc_bridge(dir; platform; modid; name; pkg; mcver)-
 -,
 -ver = "1.0.0",
 -#mkdirs(dir),
--mc_copy_config(dir),
--if platform == "fabric"-
+	-mc_copy_config(dir),
+	-mc_make_resident(dir),
+	-if platform == "fabric"-
 --mc_fabric(dir; modid; name; ver; pkg; mcver),
 -elif platform == "forge"-
 --mc_forge(dir; modid; name; ver; pkg; mcver),
@@ -205,9 +260,9 @@ def mc_bridge(dir; platform; modid; name; pkg; mcver)-
 -rd = rd + "## 前置\n- 安装 Vesna（vesna.exe --install），或设置 VESNA_HOME / config/vesna/runtime.properties 的 vesna.path\n\n",
 -rd = rd + "## 构建\n- gradlew build（需 JDK 17+；首次会下载依赖）\n- 换 MC 版本：修改 mcver 并调整 build.gradle 中对应版本表（Forge/NeoForge 的 47.x / fabric-api 版本随 MC 变化）\n\n",
 -rd = rd + "## 使用\n- 命令：/" + modid + " <script> [args...] 执行脚本；/" + modid + "-reload 重载 events.json\n",
--rd = rd + "- 内置事件：server_started / player_join；脚本返回 {\"message\": ...} 会广播到聊天\n",
--rd = rd + "- 脚本协议：argv[1] = JSON payload；stdout 最后一行 JSON 为返回结果\n\n",
--rd = rd + "## 性能定位\n- 每个事件/命令启动一个短生命周期 vesna 进程（30s 超时），适合低频事件与命令；\n- 不适合每 tick 调用（后续版本可加常驻进程模式）。\n",
+-rd = rd + "- 事件映射：config/vesna/events.json；默认 11 事件 + timers 定时（脚本返回 {\"message\": ...} 广播，{\"actions\": [...]} 执行动作）\n",
+-rd = rd + "- 脚本协议（单次模式）：argv[1] = JSON payload；stdout 最后一行 JSON 为返回结果\n\n",
+-rd = rd + "## 常驻进程模式\n- events.json 置 \"resident\": true 后，模组启动常驻 vesna 进程（resident.ves），事件经 stdin/stdout JSON 行协议分发，适合 server_tick 等高频事件；\n- 命令 /<modid> <script> 与定时任务仍走单次进程。\n",
 -#fwrite(dir + "\\README.md"; rd),
 -back({"ok": true; "platform": platform; "mcver": mcver; "dir": dir}),
 ,
