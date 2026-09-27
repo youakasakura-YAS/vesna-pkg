@@ -10,8 +10,10 @@ def make_pkg(name, entry, version, desc, files, deps=None):
     with io.open(os.path.join(d, 'vesna-pkg.json'), 'w', encoding='utf-8', newline='\n') as f:
         f.write(json.dumps(pkg, ensure_ascii=False, indent=2))
     zpath = os.path.join(d, '%s-%s.zip' % (name, version))
+    # zip 内必须含 vesna-pkg.json（vpm install 的元数据校验要求）
+    all_files = ['vesna-pkg.json'] + [f for f in files if f != 'vesna-pkg.json']
     with zipfile.ZipFile(zpath, 'w', zipfile.ZIP_DEFLATED) as z:
-        for fn in files:
+        for fn in all_files:
             z.write(os.path.join(d, fn), fn)
     chk = hashlib.sha256(open(zpath, 'rb').read()).hexdigest().lower()
     url = 'https://youakasakura-YAS.github.io/vesna-pkg/packages/%s/%s-%s.zip' % (name, name, version)
