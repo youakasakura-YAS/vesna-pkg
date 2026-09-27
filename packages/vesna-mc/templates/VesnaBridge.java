@@ -9,19 +9,33 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Bridge between a Minecraft mod and the Vesna language runtime.
  *
- * Execution model: every event or command spawns a short-lived `vesna` process
- * (one-shot scripts). The script receives the event payload as argv[1] (a JSON
- * string) and returns its result by printing a single JSON object as the last
- * line of stdout.
+ * Execution model: every event, command or timer tick spawns a short-lived
+ * `vesna` process (one-shot scripts). The script receives the event payload as
+ * argv[1] (a JSON string) and returns its result by printing a single JSON
+ * object as the last line of stdout.
  *
  * Protocol:
- *   script.ves  ->  argv[1] = JSON payload
- *   stdout      ->  last non-empty line = JSON result object
+ *   script.ves        ->  argv[1] = JSON payload
+ *   stdout (last line)->  JSON result object
+ *
+ * Result object supports:
+ *   { "message": "text" }                          quick broadcast
+ *   { "actions": [ { "type": "...", ... } ] }      action list (see ActionSink)
+ *
+ * Events map to scripts via config/vesna/events.json:
+ *   {
+ *     "server_started": { "script": "server_started.ves" },
+ *     "player_join":    { "script": "player_join.ves" },
+ *     ...
+ *     "timers": [ { "script": "timer_example.ves", "seconds": 30 } ]
+ *   }
  *
  * Locating the runtime (first match wins):
  *   1. config/vesna/runtime.properties  -> vesna.path
@@ -35,10 +49,27 @@ public final class VesnaBridge {
     public static final String RUNTIME_PROPS = "runtime.properties";
     public static final long TIMEOUT_SECONDS = 30;
 
+    /**
+     * Actions a script may request. Implemented by the platform entrypoint
+     * (each loader exposes slightly different APIs).
+     */
+    public interface ActionSink {
+        /** target: "all" or "player:<name>". */
+        void message(String target, String text);
+        void command(String cmd);
+        void give(String player, String item, int count);
+        void kick(String player, String reason);
+        void effect(String player, String effect, int duration, int level);
+        void teleport(String player, double x, double y, double z);
+        void sound(String player, String sound);
+        void log(String text);
+    }
+
     private final File configDir;
     private final File runtimeDir;   // directory the vesna process is spawned from (script root)
     private final String vesnaPath;
     private Map<String, Object> events = new LinkedHashMap<String, Object>();
+    private ScheduledExecutorService timers;
 
     public VesnaBridge(File gameDir) {
         this.configDir = new File(gameDir, CONFIG_DIR);
@@ -123,6 +154,110 @@ public final class VesnaBridge {
         return run((String) sc, payload);
     }
 
+    /** Run a script, then execute the actions it requested through the sink. */
+    public void fireWithActions(ActionSink sink, String event, Map<String, Object> payload) {
+        Map<String, Object> r = fire(event, payload);
+        runActions(sink, r);
+    }
+
+    /** Execute the actions a script result requests through the platform sink. */
+    public void runActions(ActionSink sink, Map<String, Object> result) {
+        if (result == null) return;
+        Object msg = result.get("message");
+        if (msg != null) sink.message("all", String.valueOf(msg));
+        Object actions = result.get("actions");
+        if (!(actions instanceof List)) return;
+        for (Object a : (List<?>) actions) {
+            if (!(a instanceof Map)) continue;
+            Map<?, ?> m = (Map<?, ?>) a;
+            String type = String.valueOf(m.get("type"));
+            String player = str(m.get("player"));
+            switch (type) {
+                case "message":
+                    sink.message(str(m.get("target"), "all"), str(m.get("text")));
+                    break;
+                case "command":
+                    sink.command(str(m.get("command")));
+                    break;
+                case "give":
+                    sink.give(player, str(m.get("item")), intOf(m.get("count"), 1));
+                    break;
+                case "kick":
+                    sink.kick(player, str(m.get("reason")));
+                    break;
+                case "effect":
+                    sink.effect(player, str(m.get("effect")), intOf(m.get("duration"), 100), intOf(m.get("level"), 1));
+                    break;
+                case "tp":
+                    sink.teleport(player, doubleOf(m.get("x")), doubleOf(m.get("y")), doubleOf(m.get("z")));
+                    break;
+                case "sound":
+                    sink.sound(player, str(m.get("sound")));
+                    break;
+                case "log":
+                    sink.log(str(m.get("text")));
+                    break;
+                default:
+                    sink.log("[vesna-mc] unknown action: " + type);
+            }
+        }
+    }
+
+    /** Start periodic timers declared in events.json ("timers" list). */
+    public synchronized void startTimers(ActionSink sink) {
+        stopTimers();
+        Object t = events.get("timers");
+        if (!(t instanceof List)) return;
+        timers = Executors.newScheduledThreadPool(2);
+        for (Object o : (List<?>) t) {
+            if (!(o instanceof Map)) continue;
+            Map<?, ?> m = (Map<?, ?>) o;
+            Object sc = m.get("script");
+            if (!(sc instanceof String) || ((String) sc).isEmpty()) continue;
+            final String script = (String) sc;
+            int secs = Math.max(1, intOf(m.get("seconds"), 10));
+            timers.scheduleAtFixedRate(new Runnable() {
+                public void run() {
+                    Map<String, Object> r = VesnaBridge.this.run(script, new LinkedHashMap<String, Object>());
+                    runActions(sink, r);
+                }
+            }, secs, secs, TimeUnit.SECONDS);
+        }
+    }
+
+    public synchronized void stopTimers() {
+        if (timers != null) {
+            timers.shutdownNow();
+            timers = null;
+        }
+    }
+
+    // ---------- helpers ----------
+
+    public static String str(Object v) {
+        return v == null ? "" : String.valueOf(v);
+    }
+
+    public static String str(Object v, String dflt) {
+        return v == null ? dflt : String.valueOf(v);
+    }
+
+    public static int intOf(Object v, int dflt) {
+        if (v instanceof Number) return ((Number) v).intValue();
+        if (v instanceof String) {
+            try { return Integer.parseInt((String) v); } catch (NumberFormatException ignored) {}
+        }
+        return dflt;
+    }
+
+    public static double doubleOf(Object v) {
+        if (v instanceof Number) return ((Number) v).doubleValue();
+        if (v instanceof String) {
+            try { return Double.parseDouble((String) v); } catch (NumberFormatException ignored) {}
+        }
+        return 0.0;
+    }
+
     /** Parse the last non-empty line of process stdout as a JSON object. */
     public static Map<String, Object> parseResult(String out) {
         if (out == null) return new LinkedHashMap<String, Object>();
@@ -199,7 +334,6 @@ public final class VesnaBridge {
         String path = System.getenv("PATH");
         if (path == null) return null;
         String sep = File.pathSeparator;
-        String dirSep = File.separator;
         for (String dir : path.split(java.util.regex.Pattern.quote(sep))) {
             if (dir.isEmpty()) continue;
             File f = new File(dir, name);

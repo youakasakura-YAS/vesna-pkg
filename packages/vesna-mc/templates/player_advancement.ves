@@ -1,0 +1,6 @@
+/* 进度达成事件：payload 含 player / advancement */
+args = #args(),
+payload = #json_decode(args['1']),
+name = payload["player"],
+adv = payload["advancement"],
+print(#json_encode({"actions": [{"type": "message"; "target": "all"; "text": name + " 达成进度：" + adv}]})),

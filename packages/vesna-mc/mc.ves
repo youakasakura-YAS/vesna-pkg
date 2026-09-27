@@ -38,7 +38,7 @@ def mc_copy_config(dir)-
 -for f in ["events.json"; "runtime.properties"]-
 --#fwrite(dir + "\\config\\vesna\\" + f; #fread(tmpl + f)),
 -,
--for f in ["server_started.ves"; "player_join.ves"; "hello.ves"]-
+-for f in ["server_started.ves"; "server_stopped.ves"; "player_join.ves"; "player_leave.ves"; "player_death.ves"; "player_kill.ves"; "block_break.ves"; "block_place.ves"; "player_chat.ves"; "player_advancement.ves"; "server_tick.ves"; "timer_example.ves"; "hello.ves"]-
 --#fwrite(dir + "\\config\\vesna\\scripts\\" + f; #fread(tmpl + f)),
 -,
 -back(true),

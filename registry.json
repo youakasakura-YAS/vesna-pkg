@@ -134,8 +134,8 @@
   },
   {
     "name": "vesna-mc",
-    "version": "1.0.0",
-    "description": "Minecraft bridge mod generator for Vesna: builds complete Fabric / Forge / NeoForge mods (MC 1.20.1+) that run Vesna scripts on server/player events and commands",
+    "version": "1.1.0",
+    "description": "Minecraft bridge mod generator for Vesna: builds complete Fabric / Forge / NeoForge mods (MC 1.20.1+) with event system (join/death/kill/block/chat/advancement/tick), action system (message/command/give/kick/effect/tp/sound/log) and periodic timers driven by Vesna scripts",
     "author": "youakasakura-YAS",
     "license": "MIT",
     "keywords": [
@@ -146,8 +146,8 @@
       "neoforge",
       "bridge"
     ],
-    "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-mc/vesna-mc-1.0.0.zip",
-    "checksum": "30067d1fb84ad3a6eb406618cd6371ed6eca3b14a5386e00a699d18409f1d8c9",
+    "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-mc/vesna-mc-1.1.0.zip",
+    "checksum": "7951eb70357ca22c403be87bf1e5413f12f721e9cba7fb6329b26d780202fd11",
     "dependencies": {}
   }
 ]
