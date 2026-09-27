@@ -1,0 +1,7 @@
+{
+  "name": "vesna-fs",
+  "version": "1.0.0",
+  "description": "Filesystem utilities for Vesna: recursive search, human-readable sizes, batch rename and directory trees",
+  "entry": "fs.ves",
+  "dependencies": {}
+}

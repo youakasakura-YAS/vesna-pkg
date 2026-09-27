@@ -1,0 +1,9 @@
+{
+  "name": "vesna-fs",
+  "version": "1.0.0",
+  "description": "Filesystem utilities for Vesna: recursive search, human-readable sizes, batch rename and directory trees",
+  "license": "MIT",
+  "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-fs/vesna-fs-1.0.0.zip",
+  "checksum": "0ad113ea1cff8debab2889898b0eaa132cf7a65757f4e00ede34ccfbff163ed9",
+  "dependencies": {}
+}

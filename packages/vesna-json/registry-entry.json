@@ -1,0 +1,9 @@
+{
+  "name": "vesna-json",
+  "version": "1.0.0",
+  "description": "JSON utilities for Vesna: pretty printing, deep get/has/set along dotted paths and deep merge",
+  "license": "MIT",
+  "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-json/vesna-json-1.0.0.zip",
+  "checksum": "099f1224510694d6b9d48075ce2c8ea5f80f2b29a2e78a4fbb874468319cda6a",
+  "dependencies": {}
+}

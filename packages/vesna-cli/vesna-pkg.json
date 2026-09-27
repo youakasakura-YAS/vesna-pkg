@@ -1,0 +1,7 @@
+{
+  "name": "vesna-cli",
+  "version": "1.0.0",
+  "description": "Command-line utilities for Vesna: argument parsing, ANSI colors, aligned tables, progress bars and stdin prompts",
+  "entry": "cli.ves",
+  "dependencies": {}
+}

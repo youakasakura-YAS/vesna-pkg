@@ -4,6 +4,6 @@
   "description": "Web GUI framework for Vesna: serve HTML pages, static assets and JSON APIs via pure-Vesna HTTP over TCP",
   "license": "MIT",
   "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-gui/vesna-gui-1.0.0.zip",
-  "checksum": "deaa01cc7e091fe0696992527d3b3960263621655ba15c01bfbaea432f724500",
+  "checksum": "4aa3aaad748e62675d999a36229d5b753e1ddf63f5657fe67afe786a270474dd",
   "dependencies": {}
 }

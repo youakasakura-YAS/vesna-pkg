@@ -1,0 +1,9 @@
+{
+  "name": "vesna-cli",
+  "version": "1.0.0",
+  "description": "Command-line utilities for Vesna: argument parsing, ANSI colors, aligned tables, progress bars and stdin prompts",
+  "license": "MIT",
+  "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-cli/vesna-cli-1.0.0.zip",
+  "checksum": "2e2e42e34037826163d42cc1440f1b87f8c86030ffd939901d627dbe5cbace42",
+  "dependencies": {}
+}

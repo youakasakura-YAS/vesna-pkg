@@ -1,0 +1,72 @@
+/* fs — filesystem utilities for Vesna v1.0.0
+   usage: import fs, */
+
+/* recursive file search; pattern is a regex applied to file names */
+def fs_find(dir; pattern)-
+-out = [],
+-_walk(dir; pattern; out),
+-back(out),
+,
+
+def _walk(dir; pattern; out)-
+-items = #ls(dir),
+-for it in items-
+--p = dir + "\\" + it,
+--if #is_dir(p)-
+---_walk(p; pattern; out),
+---,
+--else-
+---if #match(it; pattern)-
+----#append(out; p),
+---,
+---,
+-,
+,
+
+/* human-readable byte size: 500 -> "500 B", 1536 -> "1.5 KB" */
+def fs_size_human(n)-
+-units = ["B"; "KB"; "MB"; "GB"; "TB"],
+-u = '1',
+-v = n,
+-while v >= '1024' and u < #len(units)-
+--v = v / '1024.0',
+--u = u + '1',
+-,
+-back(#str(v) + " " + units[u]),
+,
+
+/* batch rename: replace `from` with `to` in every file name under dir; returns count */
+def fs_batch_rename(dir; from; to)-
+-n = '0',
+-items = #ls(dir),
+-for it in items-
+--p = dir + "\\" + it,
+--if not #is_dir(p) and #contains(it; from)-
+---nn = #replace(it; from; to),
+---#rename(p; dir + "\\" + nn),
+---n = n + '1',
+---,
+-,
+-back(n),
+,
+
+/* render a directory tree as text */
+def fs_tree(dir)-
+-back(_tree(dir; "")),
+,
+
+def _tree(dir; prefix)-
+-out = "",
+-items = #ls(dir),
+-for it in items-
+--p = dir + "\\" + it,
+--if #is_dir(p)-
+---out = out + prefix + it + "/\n",
+---out = out + _tree(p; prefix + "  "),
+---,
+--else-
+---out = out + prefix + it + "\n",
+---,
+-,
+-back(out),
+,

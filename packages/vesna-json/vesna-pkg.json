@@ -1,0 +1,7 @@
+{
+  "name": "vesna-json",
+  "version": "1.0.0",
+  "description": "JSON utilities for Vesna: pretty printing, deep get/has/set along dotted paths and deep merge",
+  "entry": "json.ves",
+  "dependencies": {}
+}

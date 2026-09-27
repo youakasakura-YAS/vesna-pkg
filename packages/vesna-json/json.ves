@@ -1,0 +1,183 @@
+/* json — JSON utilities for Vesna v1.0.0
+   usage: import vesna-json, */
+
+/* pretty-print a value as indented JSON */
+def json_pretty(v)-
+-back(_fmt(v; '0')),
+,
+
+def _fmt(v; depth)-
+-t = #type(v),
+-if t == "dict"-
+--if #len(#keys(v)) == '0'-
+---back("{}"),
+--,
+--out = "{\n",
+--ind = #repeat("  "; depth + '1'),
+--first = true,
+--for k in #keys(v)-
+---if not first-
+----out = out + ",\n",
+---,
+---first = false,
+---out = out + ind + #json_encode(k) + ": " + _fmt(v[k]; depth + '1'),
+--,
+--out = out + "\n" + #repeat("  "; depth) + "}",
+--back(out),
+-,
+-elif t == "list"-
+--if #len(v) == '0'-
+---back("[]"),
+--,
+--out = "[\n",
+--ind = #repeat("  "; depth + '1'),
+--first = true,
+--for x in v-
+---if not first-
+----out = out + ",\n",
+---,
+---first = false,
+---out = out + ind + _fmt(x; depth + '1'),
+--,
+--out = out + "\n" + #repeat("  "; depth) + "]",
+--back(out),
+-,
+-else-
+--back(#json_encode(v)),
+-,
+,
+
+/* deep get along a dotted path like "a.b.c" (or numeric list index); returns none when missing */
+def json_get(d; path)-
+-parts = #split(path; "."),
+-cur = d,
+-for p in parts-
+--if #type(cur) == "dict" and #has_key(cur; p)-
+---cur = cur[p],
+---,
+--elif #type(cur) == "list" and #match(p; "^[0-9]+$")-
+---idx = #int(p),
+---if idx >= '1' and idx <= #len(cur)-
+----cur = cur[idx],
+---,
+---else-
+----back(none),
+---,
+---,
+--else-
+---back(none),
+---,
+-,
+-back(cur),
+,
+
+/* deep has along a dotted path */
+def json_has(d; path)-
+-parts = #split(path; "."),
+-cur = d,
+-for p in parts-
+--if #type(cur) == "dict" and #has_key(cur; p)-
+---cur = cur[p],
+---,
+--elif #type(cur) == "list" and #match(p; "^[0-9]+$")-
+---idx = #int(p),
+---if idx >= '1' and idx <= #len(cur)-
+----cur = cur[idx],
+---,
+---else-
+----back(false),
+---,
+---,
+--else-
+---back(false),
+---,
+-,
+-back(true),
+,
+
+/* deep set along a dotted path; returns a new copy (input untouched) */
+def json_set(d; path; v)-
+-copy = _deep_copy(d),
+-parts = #split(path; "."),
+-cur = copy,
+-i = '1',
+-while i < #len(parts)-
+--p = parts[i],
+--if #type(cur) == "dict"-
+---if not #has_key(cur; p)-
+----cur[p] = {},
+---,
+---cur = cur[p],
+---,
+--elif #type(cur) == "list" and #match(p; "^[0-9]+$")-
+---idx = #int(p),
+---if idx >= '1' and idx <= #len(cur)-
+----cur = cur[idx],
+---,
+---else-
+----#append(cur; {}),
+----cur = cur[#len(cur)],
+---,
+---,
+--else-
+---back(copy),
+---,
+--,
+--i = i + '1',
+-,
+-last = parts[#len(parts)],
+-if #type(cur) == "dict"-
+--cur[last] = v,
+-,
+-elif #type(cur) == "list" and #match(last; "^[0-9]+$")-
+--idx = #int(last),
+--if idx >= '1' and idx <= #len(cur)-
+---cur[idx] = v,
+---,
+--else-
+---#append(cur; v),
+---,
+-,
+-back(copy),
+,
+
+/* deep merge b into a; dicts merge recursively, other values from b win; returns new copy */
+def json_merge(a; b)-
+-out = _deep_copy(a),
+-_merge(out; b),
+-back(out),
+,
+
+def _merge(dst; src)-
+-if #type(src) != "dict"-
+--back(dst),
+-,
+-for k in #keys(src)-
+--if #type(src[k]) == "dict" and #has_key(dst; k) and #type(dst[k]) == "dict"-
+---_merge(dst[k]; src[k]),
+---,
+--else-
+---dst[k] = _deep_copy(src[k]),
+---,
+-,
+,
+
+def _deep_copy(v)-
+-t = #type(v),
+-if t == "dict"-
+--out = {},
+--for k in #keys(v)-
+---out[k] = _deep_copy(v[k]),
+--,
+--back(out),
+-,
+-elif t == "list"-
+--out = [],
+--for x in v-
+---#append(out; _deep_copy(x)),
+--,
+--back(out),
+-,
+-else-
+--back(v),
+-,

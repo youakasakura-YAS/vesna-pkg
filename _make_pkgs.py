@@ -30,11 +30,20 @@ e1 = make_pkg('vesna-gui', 'gui.ves', '1.0.0',
 e2 = make_pkg('vesna-email', 'email.ves', '1.0.0',
               'Email for Vesna: SMTP client (send mail, optional AUTH LOGIN) and a local mailbox server that saves .eml files',
               ['email.ves', 'README.md'])
+e3 = make_pkg('vesna-cli', 'cli.ves', '1.0.0',
+              'Command-line utilities for Vesna: argument parsing, ANSI colors, aligned tables, progress bars and stdin prompts',
+              ['cli.ves', 'README.md'])
+e4 = make_pkg('vesna-fs', 'fs.ves', '1.0.0',
+              'Filesystem utilities for Vesna: recursive search, human-readable sizes, batch rename and directory trees',
+              ['fs.ves', 'README.md'])
+e5 = make_pkg('vesna-json', 'json.ves', '1.0.0',
+              'JSON utilities for Vesna: pretty printing, deep get/has/set along dotted paths and deep merge',
+              ['json.ves', 'README.md'])
 
 reg_path = os.path.join(BASE, 'registry.json')
 reg = json.load(io.open(reg_path, encoding='utf-8'))
 names = {r['name'] for r in reg}
-for e in (e1, e2):
+for e in (e1, e2, e3, e4, e5):
     if e['name'] not in names:
         reg.append(e)
         print('registry +=', e['name'])

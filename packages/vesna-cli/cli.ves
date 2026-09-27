@@ -1,0 +1,102 @@
+/* cli — command-line utilities for Vesna v1.0.0
+   usage: import cli, */
+
+/* parse argv into {args: [...]; flags: {name: value}}
+   --key=value | --flag | -f ; plain args kept in order */
+def cli_parse(argv)-
+-f = {},
+-out = {"args": []; "flags": f},
+-i = '1',
+-while i <= #len(argv)-
+--a = argv[i],
+--if #startswith(a; "--")-
+---kv = #split(a; "="),
+---k = kv['1'],
+---v = "true",
+---if #len(kv) >= '2'-
+----v = kv['2'],
+---,
+---f[#sub(k; '3'; #len(k))] = v,
+---,
+--elif #startswith(a; "-") and #len(a) > '1'-
+---f[#sub(a; '2'; #len(a))] = "true",
+---,
+--else-
+---#append(out["args"]; a),
+---,
+--,
+--i = i + '1',
+-,
+-back(out),
+,
+
+/* wrap text in an ANSI color code (e.g. "31" red, "32" green, "33" yellow, "36" cyan) */
+def cli_color(text; code)-
+-back(#chr('27') + "[" + code + "m" + text + #chr('27') + "[0m"),
+,
+
+/* render an aligned table; rows are dicts keyed by header names */
+def cli_table(headers; rows)-
+-w = {},
+-for h in headers-
+--w[h] = #len(h),
+-,
+-for r in rows-
+--for h in headers-
+---v = r[h],
+---if not #is_none(v)-
+----if #len(#str(v)) > w[h]-
+-----w[h] = #len(#str(v)),
+----,
+---,
+--,
+-,
+-out = "",
+-for h in headers-
+--out = out + h + #repeat(" "; #max([w[h] - #len(h) + '2'; '1'])),
+-,
+-out = #trim(out) + "\n",
+-for r in rows-
+--line = "",
+--for h in headers-
+---v = r[h],
+---s = "",
+---if not #is_none(v)-
+----s = #str(v),
+---,
+---line = line + s + #repeat(" "; #max([w[h] - #len(s) + '2'; '1'])),
+--,
+--out = out + #trim(line) + "\n",
+-,
+-back(out),
+,
+
+/* render a progress bar string like [####----] 50% */
+def cli_progress(cur; total; width)-
+-f = '0.0',
+-if total > '0'-
+--f = cur / total,
+-,
+-n = #int(f * width),
+-n = #clamp(n; '0'; width),
+-bar = #repeat("#"; n) + #repeat("-"; width - n),
+-back("[" + bar + "] " + #str(#int(f * '100')) + "%"),
+,
+
+/* prompt for a yes/no answer, default no; returns bool */
+def cli_confirm(msg)-
+-print(msg + " [y/N]: "),
+-r = #stdin(),
+-r = #down(#trim(r)),
+-if r == "y" or r == "yes"-
+--back(true),
+-,
+-back(false),
+,
+
+/* prompt for free input; returns trimmed line (or "" on EOF) */
+def cli_ask(msg)-
+-print(msg + ": "),
+-r = #stdin(),
+-back(#trim(r)),
+,
