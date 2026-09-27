@@ -1,0 +1,4 @@
+{
+  "server_started": { "script": "server_started.ves" },
+  "player_join": { "script": "player_join.ves" }
+}

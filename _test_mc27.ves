@@ -1,0 +1,42 @@
+/* vesna-mc 生成测试：三平台 */
+import vesna-mc,
+r1 = mc_bridge("_t27_fabric"; "fabric"; "vesnamc"; "Vesna MC"; "com.example.vesnamc"; "1.20.1"),
+print("fabric: " + #json_encode(r1)),
+r2 = mc_bridge("_t27_forge"; "forge"; "vesnamc"; "Vesna MC"; "com.example.vesnamc"; "1.20.1"),
+print("forge: " + #json_encode(r2)),
+r3 = mc_bridge("_t27_neoforge"; "neoforge"; "vesnamc"; "Vesna MC"; "com.example.vesnamc"; "1.20.1"),
+print("neoforge: " + #json_encode(r3)),
+r4 = mc_bridge("_t27_bad"; "spigot"; "x"; "x"; "x.x"; "1.20.1"),
+print("bad platform: " + #json_encode(r4)),
+/* 校验生成文件 */
+ok1 = #fexists("_t27_fabric\\src\\main\\java\\com\\example\\vesnamc\\VesnaMod.java") and #fexists("_t27_fabric\\src\\main\\java\\com\\example\\vesnamc\\VesnaBridge.java") and #fexists("_t27_fabric\\src\\main\\java\\com\\example\\vesnamc\\VesnaJson.java") and #fexists("_t27_fabric\\src\\main\\resources\\fabric.mod.json") and #fexists("_t27_fabric\\build.gradle") and #fexists("_t27_fabric\\config\\vesna\\events.json") and #fexists("_t27_fabric\\config\\vesna\\scripts\\player_join.ves"),
+if ok1-
+-print("PASS fabric files"),
+else-
+-print("FAIL fabric files"),
+-,
+ok2 = #fexists("_t27_forge\\src\\main\\java\\com\\example\\vesnamc\\VesnaMod.java") and #fexists("_t27_forge\\src\\main\\resources\\META-INF\\mods.toml"),
+if ok2-
+-print("PASS forge files"),
+else-
+-print("FAIL forge files"),
+-,
+ok3 = #fexists("_t27_neoforge\\src\\main\\java\\com\\example\\vesnamc\\VesnaMod.java") and #fexists("_t27_neoforge\\src\\main\\resources\\META-INF\\neoforge.mods.toml"),
+if ok3-
+-print("PASS neoforge files"),
+else-
+-print("FAIL neoforge files"),
+-,
+/* 校验占位符注入 */
+vb = #fread("_t27_fabric\\src\\main\\java\\com\\example\\vesnamc\\VesnaBridge.java"),
+if #contains(vb; "package com.example.vesnamc;") and not #contains(vb; "@@PKG@@")-
+-print("PASS placeholder fabric"),
+else-
+-print("FAIL placeholder fabric"),
+-,
+fm = #fread("_t27_fabric\\src\\main\\resources\\fabric.mod.json"),
+if #contains(fm; "com.example.vesnamc.VesnaMod") and #contains(fm; "1.20.1")-
+-print("PASS fabric meta"),
+else-
+-print("FAIL fabric meta"),
+-,

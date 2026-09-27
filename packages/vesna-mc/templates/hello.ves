@@ -1,0 +1,6 @@
+/* 手动命令示例：/vesnamc hello.ves <name>；argv[1] = 第一个参数 */
+args = #args(),
+who = args['1'],
+if who == ""-
+-who = "world",
+print(#json_encode({"message": "Hello, " + who + "!"})),

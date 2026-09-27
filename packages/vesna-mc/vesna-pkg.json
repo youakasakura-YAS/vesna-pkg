@@ -1,0 +1,7 @@
+{
+  "name": "vesna-mc",
+  "version": "1.0.0",
+  "description": "Minecraft bridge mod generator for Vesna: builds a complete Fabric / Forge / NeoForge mod (MC 1.20.1+) that runs Vesna scripts on server/player events and commands",
+  "entry": "mc.ves",
+  "dependencies": {}
+}

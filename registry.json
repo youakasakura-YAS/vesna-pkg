@@ -131,5 +131,23 @@
     "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-dev/vesna-dev-1.0.0.zip",
     "checksum": "26e8f7937bdc3450994bb71b9855135c26149773f0fc44a4b349c9c3cb5932f2",
     "dependencies": {}
+  },
+  {
+    "name": "vesna-mc",
+    "version": "1.0.0",
+    "description": "Minecraft bridge mod generator for Vesna: builds complete Fabric / Forge / NeoForge mods (MC 1.20.1+) that run Vesna scripts on server/player events and commands",
+    "author": "youakasakura-YAS",
+    "license": "MIT",
+    "keywords": [
+      "minecraft",
+      "mod",
+      "fabric",
+      "forge",
+      "neoforge",
+      "bridge"
+    ],
+    "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-mc/vesna-mc-1.0.0.zip",
+    "checksum": "30067d1fb84ad3a6eb406618cd6371ed6eca3b14a5386e00a699d18409f1d8c9",
+    "dependencies": {}
   }
 ]
