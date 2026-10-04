@@ -1,0 +1,2 @@
+/* 服务器停止事件 */
+print(#json_encode({"actions": [{"type": "log"; "text": "server stopped"}]})),

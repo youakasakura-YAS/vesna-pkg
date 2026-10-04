@@ -1,0 +1,6 @@
+/* 玩家死亡事件：payload 含 player / message */
+args = #args(),
+payload = #json_decode(args['1']),
+name = payload["player"],
+msg = payload["message"],
+print(#json_encode({"actions": [{"type": "message"; "target": "all"; "text": "注意：" + name + " 倒下了！"}]})),

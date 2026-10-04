@@ -1,0 +1,5 @@
+/* 玩家加入事件：argv[1] 是 JSON payload（player / uuid） */
+args = #args(),
+payload = #json_decode(args['1']),
+name = payload["player"],
+print(#json_encode({"message": "欢迎 " + name + " 加入服务器！"})),

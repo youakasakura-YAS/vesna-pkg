@@ -15,7 +15,7 @@ mc_bridge("F:\\my-mod"; "fabric"; "vesnamc"; "Vesna MC"; "com.example.vesnamc"; 
 
 ## 事件系统
 
-脚本由 `config/vesna/events.json` 映射事件。`"resident": true` 启用常驻进程模式。生成项目内置以下事件：
+脚本由 `config/vesna/events.json` 映射事件。`"resident": true` 启用常驻进程模式；顶层 `"tick_interval"`（默认 20 tick）控制 `server_tick` 频率；事件级 `"min_interval"`（秒）做高频节流；常驻模式下顶层 `state` dict 可在事件函数间共享数据。生成项目内置以下事件：
 
 | 事件 | payload | 触发时机 |
 | --- | --- | --- |
@@ -29,7 +29,12 @@ mc_bridge("F:\\my-mod"; "fabric"; "vesnamc"; "Vesna MC"; "com.example.vesnamc"; 
 | `block_place` | player, uuid, op, block, x, y, z | 放置方块 |
 | `player_chat` | player, uuid, op, message | 聊天消息 |
 | `player_advancement` | player, uuid, op, advancement | 达成进度 |
-| `server_tick` | tick（秒） | 每秒一次（低频） |
+| `server_tick` | tick（秒） | 定时触发（`tick_interval` 可调，默认 20 tick） |
+| `player_use_block` | player, block, x, y, z, hand | 使用/交互方块 |
+| `player_use_item` | player, item, hand | 使用物品 |
+| `player_respawn` | player, uuid, op | 玩家重生 |
+| `entity_damage` | entity, attacker, amount | 实体受伤（可配 `min_interval` 节流） |
+| `player_drop_item` | player, item, count | 丢弃物品 |
 
 定时任务：`events.json` 的 `"timers"` 数组声明周期脚本（`{"script": "...", "seconds": N}`）。
 
@@ -48,6 +53,12 @@ mc_bridge("F:\\my-mod"; "fabric"; "vesnamc"; "Vesna MC"; "com.example.vesnamc"; 
     {"type": "effect", "player": "Alex", "effect": "minecraft:speed", "duration": 30, "level": 2},
     {"type": "tp", "player": "Alex", "x": 0, "y": 100, "z": 0},
     {"type": "sound", "player": "Alex", "sound": "minecraft:block.note_block.pling"},
+    {"type": "title", "player": "Alex", "title": "你好", "subtitle": "来自 Vesna"},
+    {"type": "actionbar", "player": "Alex", "text": "动作栏消息"},
+    {"type": "set_block", "x": 0, "y": 100, "z": 0, "block": "minecraft:diamond_block"},
+    {"type": "summon", "entity": "minecraft:creeper", "x": 0, "y": 100, "z": 0},
+    {"type": "spawn_particle", "particle": "minecraft:flame", "x": 0, "y": 100, "z": 0, "count": 20},
+    {"type": "scoreboard", "player": "Alex", "objective": "kills", "score": 10},
     {"type": "log", "text": "server log"}
   ]
 }

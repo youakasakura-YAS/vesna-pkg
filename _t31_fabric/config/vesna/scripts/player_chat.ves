@@ -1,0 +1,12 @@
+/* 聊天事件：关键词自动回复（payload 含 player / message / op） */
+args = #args(),
+payload = #json_decode(args['1']),
+name = payload["player"],
+msg = payload["message"],
+reply = "",
+if #contains(msg; "hello") or #contains(msg; "Hello") or #contains(msg; "你好")-
+-reply = "Hello, " + name + "！我是 Vesna 机器人。",
+-,
+if reply != ""-
+-print(#json_encode({"actions": [{"type": "message"; "target": "player:" + name; "text": reply}]})),
+-,

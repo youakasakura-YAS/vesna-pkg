@@ -1,0 +1,2 @@
+/* 服务器启动事件（由桥接模组调用） */
+print(#json_encode({"message": "Hello from Vesna!"})),

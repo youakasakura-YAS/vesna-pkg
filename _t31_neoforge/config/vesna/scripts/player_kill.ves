@@ -1,0 +1,6 @@
+/* 玩家击杀事件：payload 含 player / victim */
+args = #args(),
+payload = #json_decode(args['1']),
+name = payload["player"],
+victim = payload["victim"],
+print(#json_encode({"actions": [{"type": "message"; "target": "all"; "text": name + " 击败了 " + victim + "！"}]})),

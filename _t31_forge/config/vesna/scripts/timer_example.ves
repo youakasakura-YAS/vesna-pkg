@@ -1,0 +1,2 @@
+/* 定时任务示例：events.json 的 timers 里每 30 秒触发一次 */
+print(#json_encode({"message": "这是来自 Vesna 的定时广播（每 30 秒）"})),

@@ -38,7 +38,7 @@ def mc_copy_config(dir)-
 -for f in ["events.json"; "runtime.properties"]-
 --#fwrite(dir + "\\config\\vesna\\" + f; #fread(tmpl + f)),
 -,
--for f in ["server_started.ves"; "server_stopped.ves"; "player_join.ves"; "player_leave.ves"; "player_death.ves"; "player_kill.ves"; "block_break.ves"; "block_place.ves"; "player_chat.ves"; "player_advancement.ves"; "server_tick.ves"; "timer_example.ves"; "hello.ves"]-
+-for f in ["server_started.ves"; "server_stopped.ves"; "player_join.ves"; "player_leave.ves"; "player_death.ves"; "player_kill.ves"; "block_break.ves"; "block_place.ves"; "player_chat.ves"; "player_advancement.ves"; "server_tick.ves"; "timer_example.ves"; "hello.ves"; "player_use_block.ves"; "player_use_item.ves"; "player_respawn.ves"; "entity_damage.ves"; "player_drop_item.ves"]-
 --#fwrite(dir + "\\config\\vesna\\scripts\\" + f; #fread(tmpl + f)),
 -,
 -back(true),
@@ -72,7 +72,8 @@ def mc_make_resident(dir)-
 -rd = rd + "   协议：stdin 每行一个 JSON 请求 {\"id\": N; \"event\": \"...\"; \"payload\": {...}}\n",
 -rd = rd + "         stdout 每行一个 JSON 响应 {\"id\": N; \"result\": {...}}\n",
 -rd = rd + "   事件函数 _on_<event>(payload) 返回结果 dict/actions，主循环负责分发 */\n",
--events = ["server_started"; "server_stopped"; "player_join"; "player_leave"; "player_death"; "player_kill"; "block_break"; "block_place"; "player_chat"; "player_advancement"; "server_tick"; "timer_example"],
+-rd = rd + "state = {},\n",
+-events = ["server_started"; "server_stopped"; "player_join"; "player_leave"; "player_death"; "player_kill"; "block_break"; "block_place"; "player_chat"; "player_advancement"; "server_tick"; "timer_example"; "player_use_block"; "player_use_item"; "player_respawn"; "entity_damage"; "player_drop_item"],
 -for ev in events-
 --rd = rd + "\n" + mc_to_func("_on_" + ev; #fread(tmpl + ev + ".ves")),
 -,
@@ -244,7 +245,7 @@ def mc_bridge(dir; platform; modid; name; pkg; mcver)-
 -if platform != "fabric" and platform != "forge" and platform != "neoforge"-
 --back({"ok": false; "error": "platform 必须为 fabric / forge / neoforge"}),
 -,
--ver = "1.0.0",
+-ver = "1.3.0",
 -#mkdirs(dir),
 	-mc_copy_config(dir),
 	-mc_make_resident(dir),
@@ -260,7 +261,10 @@ def mc_bridge(dir; platform; modid; name; pkg; mcver)-
 -rd = rd + "## 前置\n- 安装 Vesna（vesna.exe --install），或设置 VESNA_HOME / config/vesna/runtime.properties 的 vesna.path\n\n",
 -rd = rd + "## 构建\n- gradlew build（需 JDK 17+；首次会下载依赖）\n- 换 MC 版本：修改 mcver 并调整 build.gradle 中对应版本表（Forge/NeoForge 的 47.x / fabric-api 版本随 MC 变化）\n\n",
 -rd = rd + "## 使用\n- 命令：/" + modid + " <script> [args...] 执行脚本；/" + modid + "-reload 重载 events.json\n",
--rd = rd + "- 事件映射：config/vesna/events.json；默认 11 事件 + timers 定时（脚本返回 {\"message\": ...} 广播，{\"actions\": [...]} 执行动作）\n",
+-rd = rd + "- 事件映射：config/vesna/events.json；默认 16 事件 + timers 定时（脚本返回 {\"message\": ...} 广播，{\"actions\": [...]} 执行动作）\n",
+-rd = rd + "- 动作系统：message / command / give / kick / effect / tp / sound / log / title / actionbar / set_block / summon / spawn_particle / scoreboard 共 14 类\n",
+-rd = rd + "- 性能：events.json 顶层 \"tick_interval\" 控制 server_tick 频率（默认 20 tick = 1s）；事件级 \"min_interval\"（秒）做高频节流\n",
+-rd = rd + "- 共享状态：常驻模式下 resident.ves 顶层 \"state\" dict 可在事件函数间读写，做跨事件计数/统计\n",
 -rd = rd + "- 脚本协议（单次模式）：argv[1] = JSON payload；stdout 最后一行 JSON 为返回结果\n\n",
 -rd = rd + "## 常驻进程模式\n- events.json 置 \"resident\": true 后，模组启动常驻 vesna 进程（resident.ves），事件经 stdin/stdout JSON 行协议分发，适合 server_tick 等高频事件；\n- 命令 /<modid> <script> 与定时任务仍走单次进程。\n",
 -#fwrite(dir + "\\README.md"; rd),
