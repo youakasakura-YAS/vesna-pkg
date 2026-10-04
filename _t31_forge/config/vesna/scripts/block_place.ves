@@ -1,6 +1,0 @@
-/* 放置方块事件 */
-args = #args(),
-payload = #json_decode(args['1']),
-name = payload["player"],
-blk = payload["block"],
-print(#json_encode({"actions": [{"type": "log"; "text": name + " 放置了 " + blk}]})),

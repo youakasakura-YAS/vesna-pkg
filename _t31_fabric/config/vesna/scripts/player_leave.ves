@@ -1,5 +1,0 @@
-/* 玩家离开事件：argv[1] = JSON payload（player / uuid / op） */
-args = #args(),
-payload = #json_decode(args['1']),
-name = payload["player"],
-print(#json_encode({"actions": [{"type": "log"; "text": name + " left the server"}]})),

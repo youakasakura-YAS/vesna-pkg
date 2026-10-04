@@ -1,5 +1,0 @@
-/* 玩家重生事件：payload 含 player / uuid / op */
-args = #args(),
-payload = #json_decode(args['1']),
-player = payload["player"],
-print(#json_encode({"actions": [{"type": "message"; "target": "all"; "text": player + " 重生了！"}]})),

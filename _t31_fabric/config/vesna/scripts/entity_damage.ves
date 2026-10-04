@@ -1,7 +1,0 @@
-/* 实体受伤事件：payload 含 entity / attacker / amount */
-args = #args(),
-payload = #json_decode(args['1']),
-entity = payload["entity"],
-attacker = payload["attacker"],
-amount = payload["amount"],
-print(#json_encode({"actions": [{"type": "log"; "text": entity + " 受到 " + #str(amount) + " 伤害（来源 " + attacker + "）"}]})),

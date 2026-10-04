@@ -1,7 +1,0 @@
-/* 服务器 tick（每秒一次）：payload 含 tick（秒数）。示例：每 300 秒记一次日志 */
-args = #args(),
-payload = #json_decode(args['1']),
-t = payload["tick"],
-if t - #floor(t / '300') * '300' == '0'-
--print(#json_encode({"actions": [{"type": "log"; "text": "server running " + #str(t) + "s"}]})),
--,

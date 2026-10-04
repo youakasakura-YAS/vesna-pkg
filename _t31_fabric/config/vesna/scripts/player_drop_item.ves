@@ -1,6 +1,0 @@
-/* 玩家丢弃物品事件：payload 含 player / item / count */
-args = #args(),
-payload = #json_decode(args['1']),
-player = payload["player"],
-item = payload["item"],
-print(#json_encode({"actions": [{"type": "log"; "text": player + " 丢弃了 " + item}]})),

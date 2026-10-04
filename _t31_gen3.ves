@@ -1,6 +1,0 @@
-/* 生成 forge + neoforge 项目用于 javac 验证 */
-import vesna-mc,
-r2 = mc_bridge("_t31_forge"; "forge"; "vesnamc"; "Vesna MC"; "com.example.vesnamc"; "1.20.1"),
-r3 = mc_bridge("_t31_neoforge"; "neoforge"; "vesnamc"; "Vesna MC"; "com.example.vesnamc"; "1.20.1"),
-print("forge: " + #json_encode(r2)),
-print("neoforge: " + #json_encode(r3)),
