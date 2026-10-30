@@ -1,104 +1,262 @@
 /* ============================================================
-   vesna-gui 演示：Web 文件管理器 + 编辑器
-   Demo: web file manager + editor (Chinese UI)
-   运行 / Run:  vesna app.ves   ->  http://localhost:18081
+   vesna-gui 2.0 演示：完整操作平台
+   Demo: full operations console
+   运行 / Run:  vesna app.ves  ->  http://localhost:18081
+   展示 / Showcases:
+     - 方法 + 路径参数路由   method & path-param routing
+     - 表单 / multipart 上传 / 下载 / 删除   form / upload / download / delete
+     - Cookie 会话（TODO 记住用户名）  cookie sessions
+     - SSE 实时推送（时钟）  SSE live push
+     - 模板引擎 + UI 组件库   template engine + UI components
    ============================================================ */
 
 import vesna-gui,
 
-root = #temp_dir() + "/vesna-webroot",
+root = #temp_dir() + "/vesna-gui-demo",
 #mkdirs(root),
 
 /* 路径穿越防护 */
 def _safe(name)-
--if #len(name) == '0' or #contains(name; "..") or #contains(name; "/") or #contains(name; "\\")-
+-if #is_str(name) == false or #len(name) == '0' or #contains(name; "..") or #contains(name; "/") or #contains(name; "\\") or #contains(name; ":")-
 --back(""),
 -,
 -back(name),
 ,
 
-/* ---- 页面 / pages ---- */
+_nav1 = {"href": "/"; "name": "仪表盘"},
+_nav2 = {"href": "/files"; "name": "文件管理"},
+_nav3 = {"href": "/todo"; "name": "待办事项"},
+_nav4 = {"href": "/sse"; "name": "实时推送"},
+nav = [_nav1; _nav2; _nav3; _nav4],
+def _page(title; inner; req; extra)-
+-opts = {"nav": nav; "current": #get(req; "path"); "scripts": #get(extra; "scripts")},
+-back(gui_page(title; inner; opts)),
+,
+
+/* ================= 仪表盘 / dashboard ================= */
 
 def page_home(req)-
--back(gui_page("文件管理"; "<h3>文件列表</h3><div id=\"list\">加载中...</div>")),
+-sess = gui_session_data(req),
+-user = #get(sess; "user"),
+-wel = "匿名访客",
+-if #is_str(user) and #len(user) > '0'-
+--wel = user,
+-,
+-files = #glob(root + "/*"),
+-rows = [],
+-for f in files-
+--nm = #last(#split(f; "\\")),
+--rows = #append(rows; [nm; #str(#fsize(f)); "文件"]),
+-,
+-tpl = "<h3>欢迎，{{!name}}</h3>" + gui_card("系统状态"; "<div class=\"kv\"><b>平台</b><span>{{platform}}</span><b>时间</b><span>{{time}}</span><b>文件数</b><span>{{n}}</span><b>架构</b><span>{{arch}}</span></div>") + "<h3>最近文件</h3>" + gui_table(["名称"; "大小"; "类型"]; rows) + "<p><a href=\"/files\">进入文件管理 →</a></p>",
+-vars = {"name": wel; "platform": #platform(); "time": #date_format(#now(); "%Y-%m-%d %H:%M:%S"); "n": #str(#len(files)); "arch": #arch()},
+-back(_page("仪表盘"; gui_tpl(tpl; vars); req; {})),
 ,
 
-def page_new(req)-
--back(gui_page("新建文件"; "<h3>新建文件</h3><div class=\"row\"><input type=\"text\" id=\"name\" placeholder=\"文件名\"></div><div class=\"row\"><textarea id=\"content\" placeholder=\"内容\"></textarea></div><div class=\"row\"><button onclick=\"saveNew(event)\">创建</button><button class=\"ghost\" onclick=\"location.hash=\\'#/\\'\">返回</button></div>")),
+/* ================= 文件管理 / file manager ================= */
+
+def page_files(req)-
+-_f_up = {"name": "file"; "label": "选择文件"; "type": "file"},
+-_f_name = {"name": "name"; "label": "文件名"; "type": "text"},
+-inner = "<h3>文件管理</h3><p>上传、下载、查看与删除 <code>" + root + "</code> 下的文件</p><div id=\"list\">加载中...</div>" + gui_upload_form("/api/upload"; [_f_up]) + "<h3>快速打开</h3>" + gui_form("/files/open"; "get"; [_f_name]; "打开"),
+-js = "function load(){fetch('/api/files').then(function(r){return r.json()}).then(function(files){var h='<table><thead><tr><th>名称</th><th>大小</th><th>操作</th></tr></thead><tbody>';files.forEach(function(f){h+='<tr><td>'+f.name+'</td><td>'+f.size+' B</td><td><button onclick=\"openF(\\''+f.name+'\\')\">查看</button> <button class=\"ghost\" onclick=\"delF(\\''+f.name+'\\')\">删除</button> <a href=\"/api/download/'+f.name+'\">下载</a></td></tr>'});h+='</tbody></table>';document.getElementById('list').innerHTML=h})}function openF(n){fetch('/api/files/'+n).then(function(r){return r.json()}).then(function(d){document.getElementById('list').innerHTML='<h3>'+d.name+'</h3><textarea id=\"c\">'+d.content.replace(/</g,'&lt;')+'</textarea><div class=\"row\"><button onclick=\"saveF(\\''+d.name+'\\')\">保存</button><button class=\"ghost\" onclick=\"load()\">返回</button></div>'})}function saveF(n){var c=document.getElementById('c').value;fetch('/api/files/'+n,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'content='+encodeURIComponent(c)}).then(function(){toast('已保存');load()})}function delF(n){if(!confirm('删除 '+n+' ?'))return;fetch('/api/files/'+n,{method:'DELETE'}).then(function(){toast('已删除');load()})}function toast(m){var t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(function(){t.style.display='none'},1600)}load()",
+-back(_page("文件管理"; inner; req; {"scripts": js})),
 ,
 
-/* ---- API / APIs ---- */
+def page_open(req)-
+-q = #get(req; "query"),
+-name = _safe(#get(q; "name")),
+-if #len(name) == '0'-
+--back(gui_redirect("/files")),
+-,
+-back(gui_redirect("/files#" + name)),
+,
 
-def api_list(req)-
+def api_files(req)-
 -out = [],
 -for f in #glob(root + "/*")-
 --nm = #last(#split(f; "\\")),
---out = #append(out; {"name": nm; "dir": #is_dir(f); "size": #fsize(f)}),
+--out = #append(out; {"name": nm; "size": #fsize(f)}),
 -,
 -back(gui_json(out)),
 ,
 
-def api_read(req)-
--name = _query(req; "name"),
--fp = root + "\\" + _safe(name),
--if #fexists(fp)-
+def api_file_get(req)-
+-name = _safe(#get(#get(req; "params"); "name")),
+-fp = root + "\\" + name,
+-if #len(name) > '0' and #fexists(fp) and #is_file(fp)-
 --back(gui_json({"name": name; "content": #fread(fp)})),
 -,
 -back(gui_json({"name": name; "content": ""})),
 ,
 
-def api_write(req)-
--name = _form(#get(req; "body"); "name"),
--content = _form(#get(req; "body"); "content"),
--fp = root + "\\" + _safe(name),
+def api_file_write(req)-
+-name = _safe(#get(#get(req; "params"); "name")),
+-fp = root + "\\" + name,
 -if #len(name) == '0'-
---back(gui_json({"ok": false; "file": ""})),
+--back(gui_json({"ok": false})),
 -,
+-form = #get(req; "form"),
+-content = #get(form; "content"),
 -#fwrite(fp; content),
--back(gui_json({"ok": true; "file": name; "size": #fsize(fp)})),
+-back(gui_json({"ok": true; "size": #fsize(fp)})),
 ,
 
-/* ---- 查询/表单解析 / query & form parsing ---- */
+def api_file_del(req)-
+-name = _safe(#get(#get(req; "params"); "name")),
+-fp = root + "\\" + name,
+-if #len(name) > '0' and #fexists(fp)-
+--#fremove(fp),
+--back(gui_json({"ok": true})),
+-,
+-back(gui_json({"ok": false})),
+,
 
-def _query(req; key)-
+def api_download(req)-
+-name = _safe(#get(#get(req; "params"); "name")),
+-fp = root + "\\" + name,
+-if #len(name) > '0' and #fexists(fp) and #is_file(fp)-
+--back(gui_download(fp; name)),
+-,
+-back(gui_404("file")),
+,
+
+def api_upload(req)-
+-files = #get(req; "files"),
+-if #has_key(files; "file")-
+--f = #get(files; "file"),
+--fname = _safe(#get(f; "name")),
+--if #len(fname) > '0'-
+---b64 = #get(f; "b64"),
+---content = #base64_decode(b64),
+---#fwrite(root + "\\" + fname; content),
+---back(gui_json({"ok": true; "file": fname; "size": #len(content)})),
+--,
+-,
+-back(gui_json({"ok": false; "file": ""})),
+,
+
+/* ================= TODO（会话演示） / TODO with sessions ================= */
+
+_todos = [],
+_todo_lock = "vesna_todo",
+
+def _todo_list()-
+-#lock(_todo_lock),
+-l = _todos,
+-#unlock(_todo_lock),
+-back(l),
+,
+
+def page_todo(req)-
+-sess = gui_session_data(req),
+-user = #get(sess; "user"),
+-inner = "",
+-_f_user = {"name": "user"; "label": "用户名"; "type": "text"},
+-_f_text = {"name": "text"; "label": "新事项"; "type": "text"},
+-if #is_str(user) == false or #len(user) == '0'-
+--inner = "<h3>待办事项</h3><p>请先登录（演示 Cookie 会话）：</p>" + gui_form("/login"; "post"; [_f_user]; "登录"),
+-else-
+--rows = [],
+--for t in _todo_list()-
+---done = t['1'],
+---label = t['0'],
+---cls = "",
+---st = "进行中",
+---if done == "yes"-
+----cls = " style=\"text-decoration:line-through;color:#9ca3af\"",
+----st = "已完成",
+---,
+---rows = #append(rows; [label; st; gui_link("/api/todo/done/" + t['2'] + "?done=yes"; "完成") + " " + gui_link("/api/todo/del/" + t['2']; "删除")]),
+--,
+--inner = "<h3>你好，{{!user}}</h3>" + gui_form("/api/todo/add"; "post"; [_f_text]; "添加") + gui_table(["事项"; "状态"; "操作"]; rows) + "<p><a href=\"/logout\">退出登录</a></p>",
+-,
+-back(_page("待办事项"; gui_tpl(inner; {"user": user}); req; {})),
+,
+
+def api_todo_add(req)-
+-form = #get(req; "form"),
+-text = #get(form; "text"),
+-if #is_str(text) == false or #len(text) == '0'-
+--back(gui_redirect("/todo")),
+-,
+-#lock(_todo_lock),
+-_todos = #append(_todos; [text; "no"; #uuid()]),
+-#unlock(_todo_lock),
+-back(gui_redirect("/todo")),
+,
+
+def api_todo_done(req)-
+-id = #get(#get(req; "params"); "id"),
 -q = #get(req; "query"),
--if #len(q) == '0'-
---back(""),
+-done = #get(q; "done"),
+-#lock(_todo_lock),
+-nt = [],
+-for t in _todos-
+--if t['2'] == id-
+---nt = #append(nt; [t['0']; done; t['2']]),
+--else-
+---nt = #append(nt; t),
 -,
--for kv in #split(q; "&")-
---p = #split(kv; "="),
---if #len(p) >= '2' and p['1'] == key-
----back(#url_decode(p['2'])),
---,
--,
--back(""),
+-_todos = nt,
+-#unlock(_todo_lock),
+-back(gui_redirect("/todo")),
 ,
 
-def _form(body; key)-
--if #len(body) == '0'-
---back(""),
+def api_todo_del(req)-
+-id = #get(#get(req; "params"); "id"),
+-#lock(_todo_lock),
+-nt = [],
+-for t in _todos-
+--if t['2'] != id-
+---nt = #append(nt; t),
 -,
--for kv in #split(body; "&")-
---p = #split(kv; "="),
---if #len(p) >= '2' and #url_decode(p['1']) == key-
----back(#url_decode(p['2'])),
---,
--,
--back(""),
+-_todos = nt,
+-#unlock(_todo_lock),
+-back(gui_redirect("/todo")),
 ,
 
-/* ---- 路由 / routes ---- */
+/* ================= 登录 / 会话 ================= */
 
-routes = {"/": "page_home"; "/new": "page_new"; "/api/list": "api_list"; "/api/read": "api_read"; "/api/write": "api_write"},
+def page_login(req)-
+-_f_user2 = {"name": "user"; "label": "用户名"; "type": "text"},
+-back(_page("登录"; "<h3>登录</h3>" + gui_form("/login"; "post"; [_f_user2]; "登录"); req; {})),
+,
 
-js1 = "function toast(m){var t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(function(){t.style.display='none'},1600)}",
-js2 = "function loadList(){fetch('/api/list').then(function(r){return r.json()}).then(function(files){var h='<table><thead><tr><th>名称</th><th>类型</th><th>大小</th><th></th></tr></thead><tbody>';files.forEach(function(f){var t=f.dir?'目录':'文件';var sz=f.dir?'-':f.size+' B';h+='<tr><td>'+f.name+'</td><td>'+t+'</td><td>'+sz+'</td><td>'+(f.dir?'':'<button onclick=\"openFile(\\''+f.name+'\\')\">打开</button>')+'</td></tr>'});h+='</tbody></table>';document.getElementById('list').innerHTML=h}).catch(function(e){toast('加载失败')})}",
-js3 = "function openFile(n){fetch('/api/read?name='+encodeURIComponent(n)).then(function(r){return r.json()}).then(function(d){var h='<h3>'+d.name+'</h3><textarea id=\"content\">'+d.content.replace(/</g,'&lt;')+'</textarea><div class=\"row\"><button onclick=\"saveFile(\\''+d.name+'\\')\">保存</button><button class=\"ghost\" onclick=\"location.hash=\\'#/\\'\">返回</button></div>';document.getElementById('list').innerHTML=h}).catch(function(e){toast('读取失败')})}",
-js4 = "function saveFile(n){var c=document.getElementById('content').value;fetch('/api/write',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)+'&content='+encodeURIComponent(c)}).then(function(r){return r.json()}).then(function(d){toast('已保存: '+d.file)}).catch(function(e){toast('保存失败')})}",
-js5 = "function saveNew(e){e.preventDefault();var n=document.getElementById('name').value;var c=document.getElementById('content').value;fetch('/api/write',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)+'&content='+encodeURIComponent(c)}).then(function(r){return r.json()}).then(function(d){toast('已创建: '+d.file);location.hash='#/'}).catch(function(e){toast('保存失败')});return false}",
-js6 = "window.addEventListener('hashchange',function(){if(location.hash==''||location.hash=='#/')loadList()});loadList()",
-js = js1 + js2 + js3 + js4 + js5 + js6,
+def api_login(req)-
+-form = #get(req; "form"),
+-user = #get(form; "user"),
+-if #is_str(user) == false or #len(user) == '0'-
+--back(gui_redirect("/todo")),
+-,
+-r = gui_session_set(req; "user"; user),
+-back(r),
+,
 
-assets = {"/static/app.js": js},
+def api_logout(req)-
+-r = gui_session_clear(req),
+-back(r),
+,
 
-gui_serve('18081'; routes; assets),
+/* ================= SSE 实时推送 / live push ================= */
+
+def page_sse(req)-
+-inner = "<h3>实时时钟（SSE 推送）</h3><p id=\"t\">连接中...</p><p id=\"n\"></p><script>var es=new EventSource('/api/clock');es.onmessage=function(e){document.getElementById('t').textContent='服务器时间: '+e.data};es.onerror=function(){document.getElementById('t').textContent='连接断开'}</script>",
+-back(_page("实时推送"; inner; req; {})),
+,
+
+def api_clock(req)-
+-back(#date_format(#now(); "%H:%M:%S")),
+,
+
+/* ================= JSON API（路径参数演示） ================= */
+
+def api_status(req)-
+-back(gui_json({"status": "ok"; "vesna": #version(); "platform": #platform(); "arch": #arch(); "time": #date_format(#now(); "%Y-%m-%d %H:%M:%S")})),
+,
+
+/* ================= 路由表 / routes ================= */
+
+routes = {"GET /": "page_home"; "GET /files": "page_files"; "GET /files/open": "page_open"; "GET /todo": "page_todo"; "GET /login": "page_login"; "GET /logout": "api_logout"; "GET /sse": "page_sse"; "POST /login": "api_login"; "GET /api/files": "api_files"; "GET /api/files/:name": "api_file_get"; "POST /api/files/:name": "api_file_write"; "DELETE /api/files/:name": "api_file_del"; "GET /api/download/:name": "api_download"; "POST /api/upload": "api_upload"; "POST /api/todo/add": "api_todo_add"; "GET /api/todo/done/:id": "api_todo_done"; "GET /api/todo/del/:id": "api_todo_del"; "GET /api/clock": "api_clock"; "GET /api/status": "api_status"},
+
+gui_serve('18081'; routes; {}),
