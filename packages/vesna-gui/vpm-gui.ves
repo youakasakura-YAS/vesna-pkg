@@ -1,0 +1,237 @@
+/* ============================================================
+   vpm-gui 2.0.0 - Vesna 包管理器图形化界面 (pure Vesna)
+   Vesna Package Manager GUI — 全部用 Vesna 编写
+
+   运行:  vesna vpm-gui.ves [端口]     默认端口 18082
+   依赖:  vesna-gui (已装) + json 标准库 + vesna.exe --pkg
+   ============================================================ */
+
+import vesna-gui,
+import json,
+
+/* ---------- 环境与工具 ---------- */
+
+def _home()-
+-h = #getenv("VESNA_HOME"),
+-if #is_str(h) == false or #len(h) == '0'-
+--back("C:\\Vesna"),
+-back(h),
+,
+
+def _vesna_exe()-
+-p = _home() + "\\bin\\vesna.exe",
+-if #fexists(p)-
+--back(p),
+-back("vesna"),
+,
+
+def _read_json(path)-
+-if not #fexists(path)-
+--back(none),
+-t = #fread(path),
+-try-
+--back(json_parse(t)),
+-catch e-
+--back(none),
+,
+
+def _meta_of(pkg_dir)-
+-m = _read_json(pkg_dir + "\\vesna-pkg.json"),
+-if #type(m) != "dict"-
+--back({}),
+-back(m),
+,
+
+def _installed_list()-
+-out = [],
+-pkgs_dir = _home() + "\\packages",
+-if not #is_dir(pkgs_dir)-
+--back(out),
+-names = #ls(pkgs_dir),
+-for nm in names-
+--if nm == "_tmp" or nm == "_cache" or nm == "_pub"-
+---continue,
+--meta_file = pkgs_dir + "\\" + nm + "\\vesna-pkg.json",
+--if not #fexists(meta_file)-
+---continue,
+--m = _meta_of(pkgs_dir + "\\" + nm),
+--out = #append(out; {"name": #get(m; "name"); "version": #get(m; "version"); "description": #get(m; "description"); "entry": #get(m; "entry"); "dir": pkgs_dir + "\\" + nm}),
+-,
+-back(out),
+,
+
+def _registry_list()-
+-r = _read_json(_home() + "\\registry.json"),
+-if #type(r) != "list"-
+--back([]),
+-back(r),
+,
+
+def _run_vpm(cmd_args)-
+-exe = _vesna_exe(),
+-cmd = "\"" + exe + "\" --pkg " + cmd_args,
+-r = #proc_run(cmd),
+-exit_code = '0',
+-out_text = "",
+-if #type(r) == "dict"-
+--exit_code = #get(r; "exit"),
+--out_text = #get(r; "output"),
+-,
+-if #is_str(out_text) == false-
+--out_text = "",
+-,
+-back({"exit": exit_code; "output": out_text}),
+,
+
+def _esc_field(v)-
+-if #is_str(v) == false-
+--back(""),
+-back(v),
+,
+
+/* ---------- 页面 ---------- */
+
+nav = [],
+nav = #append(nav; {"href": "/"; "name": "仪表盘"}),
+nav = #append(nav; {"href": "/installed"; "name": "已安装包"}),
+nav = #append(nav; {"href": "/browse"; "name": "包花园"}),
+
+def _page(title; inner; req; extra)-
+-opts = {"nav": nav; "current": #get(req; "path"); "scripts": #get(extra; "scripts")},
+-back(gui_page(title; inner; opts)),
+,
+
+def page_home(req)-
+-/* 统计 */
+-installed = _installed_list(),
+-reg = _registry_list(),
+-n_inst = #str(#len(installed)),
+-n_reg = #str(#len(reg)),
+-ves = #version(),
+-/* 卡片 */
+-card1 = gui_card("已安装包"; "<div class=\"kv\"><b>数量</b><span>" + n_inst + "</span><b>目录</b><span>" + _home() + "\\packages</span></div>"),
+-card2 = gui_card("包花园"; "<div class=\"kv\"><b>可获取</b><span>" + n_reg + "</span><b>索引</b><span>" + _home() + "\\registry.json</span></div>"),
+-card3 = gui_card("运行时"; "<div class=\"kv\"><b>版本</b><span>" + _esc_field(ves) + "</span><b>命令</b><span>vesna --pkg</span></div>"),
+-inner = "<h3>包管理器总览</h3>" + card1 + card2 + card3 + "<p><a href=\"/installed\">管理已安装包 →</a> <a href=\"/browse\">浏览包花园 →</a></p>",
+-back(_page("包管理器"; inner; req; {})),
+,
+
+def page_installed(req)-
+-rows = [],
+-for p in _installed_list()-
+--nm = #get(p; "name"),
+--ver = #get(p; "version"),
+--desc = #get(p; "description"),
+--if #is_str(ver) == false-
+---ver = "-",
+--,
+--if #is_str(desc) == false or #len(desc) == '0'-
+---desc = "（无描述）",
+--,
+--rows = #append(rows; [nm; ver; desc; gui_link("/op?do=remove&name=" + nm; "卸载")]),
+-,
+-inner = "<h3>已安装包</h3><p>共 " + #str(#len(rows)) + " 个（卸载需无其他包依赖，或使用 --force）</p>",
+-if #len(rows) == '0'-
+--inner = inner + "<p>暂无已安装包。</p>",
+-else-
+--inner = inner + gui_table(["名称"; "版本"; "描述"; "操作"]; rows),
+-,
+-back(_page("已安装包"; inner; req; {})),
+,
+
+def page_browse(req)-
+-q = #get(#get(req; "query"); "q"),
+-if #is_str(q) == false-
+--q = "",
+-,
+-q = #down(q),
+-reg = _registry_list(),
+-rows = [],
+-for p in reg-
+--if #type(p) == "dict"-
+---nm = #get(p; "name"),
+---ver = #get(p; "version"),
+---desc = #get(p; "description"),
+---if #is_str(nm) == false-
+----continue,
+---,
+---if #is_str(ver) == false-
+----ver = "-",
+---,
+---if #is_str(desc) == false-
+----desc = "",
+---,
+---hit = "true",
+---if #len(q) > '0'-
+----hit = "false",
+----if #find(#down(nm); q) != '0' or #find(#down(desc); q) != '0'-
+-----hit = "true",
+----,
+---,
+---if hit == "true"-
+----rows = #append(rows; [nm; ver; desc; gui_link("/op?do=install&name=" + nm; "安装")]),
+---,
+-,
+-/* 搜索表单 */
+-search_form = "<form method=\"get\" action=\"/browse\" class=\"row\"><input type=\"text\" name=\"q\" value=\"" + gui_esc(q) + "\" placeholder=\"搜索包名或描述\"><button type=\"submit\">搜索</button>" + "<a class=\"ghost\" href=\"/op?do=registry\"><button type=\"button\" class=\"ghost\">刷新索引</button></a></form>",
+-inner = "<h3>包花园</h3>" + search_form,
+-if #len(rows) == '0'-
+--inner = inner + "<p>没有匹配的包（可点击“刷新索引”更新 registry 缓存）。</p>",
+-else-
+--inner = inner + "<p>匹配 " + #str(#len(rows)) + " 个</p>" + gui_table(["名称"; "版本"; "描述"; "操作"]; rows),
+-,
+-back(_page("包花园"; inner; req; {})),
+,
+
+def page_op(req)-
+-q = #get(req; "query"),
+-do = #get(q; "do"),
+-nm = #get(q; "name"),
+-if #is_str(do) == false-
+--do = "",
+-,
+-if #is_str(nm) == false-
+--nm = "",
+-,
+-/* 执行 */
+-res = {},
+-title = "操作",
+-msg = "",
+-if do == "install"-
+--title = "安装 " + nm,
+--res = _run_vpm("install " + nm),
+-elif do == "remove"-
+--title = "卸载 " + nm,
+--res = _run_vpm("remove " + nm),
+-elif do == "registry"-
+--title = "刷新索引",
+--res = _run_vpm("registry"),
+-else-
+--res = {"exit": '-1'; "output": "未知操作: " + do},
+-,
+-exit_code = #get(res; "exit"),
+-out_text = #get(res; "output"),
+-badge = gui_badge("完成"; "green"),
+-if exit_code != '0'-
+--badge = gui_badge("失败"; "red"),
+-,
+-pre = "<pre style=\"white-space:pre-wrap;word-break:break-all\">" + gui_esc(out_text) + "</pre>",
+-inner = "<h3>" + title + "</h3><p>退出码 " + #str(exit_code) + " " + badge + "</p>" + pre + "<p><a href=\"/installed\">← 返回已安装包</a> <a href=\"/browse\">← 返回包花园</a></p>",
+-back(_page(title; inner; req; {})),
+,
+
+/* ---------- 启动 ---------- */
+
+args = #args(),
+port = "18082",
+if #len(args) >= '1'-
+--port = args['1'],
+,
+routes = {
+  "GET /": "page_home";
+  "GET /installed": "page_installed";
+  "GET /browse": "page_browse";
+  "GET /op": "page_op"
+},
+assets = {},
+gui_serve(#int(port); routes; assets),
