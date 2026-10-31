@@ -8,12 +8,18 @@ Build graphical operation platforms (web UI) in pure Vesna.
 
 `vesna-gui` is an extra package (not part of the Vesna core). It lets Vesna scripts host a full
 web application: HTML pages, static assets, JSON APIs, cookie sessions, SSE push, and multipart
-file upload — all over a plain TCP HTTP server written in Vesna itself. No new builtins, no
-third-party libraries, one thread per connection (`#thread`).
+file upload — all over a plain TCP HTTP server written in Vesna itself. Since 3.0 it also offers a
+front-end-style **component model**: a component tree (`gui_h` / `gui_render`), a server-side state
+store (`gui_state_*`), and a small SPA runtime (`gui_script_spa`) so interactive pages behave like
+a JS front-end framework while all logic stays in Vesna. No new builtins, no third-party
+libraries, one thread per connection (`#thread`).
 
 `vesna-gui` 是额外包（不加入 Vesna 本体）。它让 Vesna 脚本可以托管一个完整的 Web 应用：HTML
 页面、静态资源、JSON API、Cookie 会话、SSE 推送与 multipart 文件上传——全部通过纯 Vesna 编写的
-TCP HTTP 服务提供。不新增内置函数、不依赖第三方库，每连接一线程（`#thread`）。
+TCP HTTP 服务提供。自 3.0 起还提供前端式**组件模型**：组件树（`gui_h` / `gui_render`）、
+服务端状态存储（`gui_state_*`）与小型 SPA 运行时（`gui_script_spa`），让交互页面像 JS 前端
+框架一样工作，而全部逻辑仍在 Vesna 中。不新增内置函数、不依赖第三方库，每连接一线程
+（`#thread`）。
 
 ## Install / 安装
 
@@ -136,6 +142,69 @@ gui_kv(pairs)                         /* 键值对 */
 gui_esc(s)                            /* HTML 转义 */
 ```
 
+## Component model 3.0 / 组件模型（3.0）
+
+A front-end-style component model: build a **component tree** with `gui_h`, render it with
+`gui_render`, keep UI state in the **server-side store** (`gui_state_*`), and drive events with
+the small **SPA runtime** (`gui_script_spa`). All 2.0 APIs remain available.
+
+前端式组件模型：用 `gui_h` 构建**组件树**，用 `gui_render` 渲染，用**服务端状态存储**
+（`gui_state_*`）保存界面状态，用小型 **SPA 运行时**（`gui_script_spa`）驱动事件。
+所有 2.0 API 保持可用。
+
+### Component tree / 组件树
+
+```ves
+/* gui_h(tag; attrs; children) -> vnode；children 为字符串/数字（自动转义）、vnode 或列表 */
+v = gui_h("div"; {"class": "col"; "style": "gap:12px"}; [
+  gui_h("h3"; {}; "标题"),
+  gui_h("button"; {"data-action": "inc"; "data-href": "/api/count/inc"}; "＋1")
+]),
+inner = gui_render(v),  /* 渲染为 HTML 字符串，文本自动转义 */
+```
+
+- 文本子节点自动转义；`attrs` 中的 `on*` 事件属性与 `attrs.html`（原样 HTML）不转义。
+- 自闭合标签（input / br / img / meta / link / hr / textarea 除外）自动输出 `<tag/>` 形式。
+- 布局辅助：`gui_flex(children; dir; gap)`（`dir` = `"row"` / `"col"`）、`gui_row_html` /
+  `gui_col_html`（原样 HTML 行/列）。
+- 更多控件：`gui_textarea(name; value)`、`gui_select(name; options; value)`、
+  `gui_checkbox(name; checked)`。
+
+### Server-side state / 服务端状态
+
+```ves
+gui_state_set("count"; "1"),   /* 写入（#lock 保护） */
+gui_state_get("count"),        /* 读取；不存在返回 none */
+gui_state_del("count"),        /* 删除 */
+```
+
+状态是进程级全局（所有连接共享），在 API 处理器中读写即可实现跨请求持久化，例如计数器：
+
+```ves
+def api_count_inc(req)-
+  cnt = #int(gui_state_get("count")) + '1',
+  gui_state_set("count"; #str(cnt)),
+  back(gui_json({"ok": true; "msg": "count = " + #str(cnt); "reload": true})),
+,
+```
+
+### SPA runtime / SPA 运行时
+
+`gui_script_spa()` 返回一段 JS 字符串，注入页面后自动：
+
+- 拦截所有 `<form>` 提交 → `fetch` POST（FormData），响应 `{"reload": true}` 时刷新页面，
+  否则弹 toast 显示 `msg`；
+- 拦截所有 `[data-action]` 按钮点击 → `fetch` POST 到 `data-href`（无 href 时回退到表单）；
+- 提供全局 `showToast(msg; kind)`。
+
+```ves
+back(gui_page("组件化 Demo"; inner; {"scripts": gui_script_spa()})),
+```
+
+组件化示例见 `_app3.ves`（计数器 + 待办，端口 18082），全部用 3.0 API 编写。
+A full component-model example lives in `_app3.ves` (counter + todo, port 18082), written
+entirely with the 3.0 API.
+
 ## Demo / 演示
 
 `app.ves` is a small web file manager + editor with TODO and SSE clock demos: list, open, save,
@@ -165,6 +234,18 @@ vesna app.ves
   路由值为处理函数**名**（字符串），经 `#call` 调用；`:name` 路径参数收集到 `req["params"]`。
 
 ## Changelog / 更新日志
+
+- **3.0.0**: front-end-style component model — component tree (`gui_h` / `gui_render`),
+  server-side state store (`gui_state_set` / `gui_state_get` / `gui_state_del`, `#lock`-guarded),
+  SPA runtime (`gui_script_spa`: form fetch-POST, `[data-action]` buttons, toast),
+  new controls (`gui_textarea` / `gui_select` / `gui_checkbox` / `gui_row_html` /
+  `gui_col_html` / `gui_flex`), `.flex`/`.flex.col`/`.grow`/`.muted` styles. All 2.0 APIs
+  remain unchanged and available.
+  **3.0.0**：前端式组件模型——组件树（`gui_h` / `gui_render`）、服务端状态存储
+  （`gui_state_set` / `gui_state_get` / `gui_state_del`，`#lock` 保护）、SPA 运行时
+  （`gui_script_spa`：表单 fetch-POST、`[data-action]` 按钮、toast）、新控件
+  （`gui_textarea` / `gui_select` / `gui_checkbox` / `gui_row_html` / `gui_col_html` /
+  `gui_flex`）、`.flex`/`.flex.col`/`.grow`/`.muted` 样式。所有 2.0 API 保持不变并可用。
 
 - **2.0.0**: sessions, template engine (`gui_tpl`), SSE (`gui_serve` → route-level), multipart
   upload (`gui_upload_form` / `req["files"]`), `gui_redirect` / `gui_file` / `gui_download` /

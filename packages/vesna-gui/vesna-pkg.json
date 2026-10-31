@@ -1,7 +1,7 @@
 {
   "name": "vesna-gui",
-  "version": "2.0.0",
-  "description": "Web GUI framework for Vesna: HTTP server, templates, sessions, SSE, multipart upload and UI components, all in pure Vesna over TCP",
+  "version": "3.0.0",
+  "description": "Web GUI framework for Vesna: component tree (gui_h/gui_render), server-side state store, SPA event runtime, HTTP server, templates, sessions, SSE, multipart upload and UI components, all in pure Vesna over TCP",
   "entry": "gui.ves",
   "dependencies": {}
 }

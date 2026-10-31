@@ -39,11 +39,11 @@
   },
   {
     "name": "vesna-gui",
-    "version": "1.0.0",
-    "description": "Web GUI framework for Vesna: serve HTML pages, static assets and JSON APIs via pure-Vesna HTTP over TCP",
+    "version": "3.0.0",
+    "description": "Web GUI framework for Vesna: component tree (gui_h/gui_render), server-side state store, SPA event runtime, HTTP server, templates, sessions, SSE, multipart upload and UI components, all in pure Vesna over TCP",
     "license": "MIT",
-    "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-gui/vesna-gui-1.0.0.zip",
-    "checksum": "4aa3aaad748e62675d999a36229d5b753e1ddf63f5657fe67afe786a270474dd",
+    "url": "https://youakasakura-YAS.github.io/vesna-pkg/packages/vesna-gui/vesna-gui-3.0.0.zip",
+    "checksum": "b3a43f3bcfebd92447e73b2047e33bb80afa47a000eb8901b9b5518b54427c7c",
     "dependencies": {}
   },
   {

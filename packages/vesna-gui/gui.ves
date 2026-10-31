@@ -1,5 +1,5 @@
 /* ============================================================
-   vesna-gui 2.0.0 - Web GUI framework (pure Vesna, zero new builtins)
+   vesna-gui 3.0.0 - Web GUI framework (pure Vesna, zero new builtins)
    Web 图形化操作平台框架（纯 Vesna，零新增内置、零第三方库）
 
    Usage / 用法:
@@ -16,6 +16,13 @@
      - Cookie 会话（服务端存储）  cookie sessions
      - 模板引擎 {{var}} {%for%} {%if%}   template engine
      - UI 组件库：页面/表格/表单/输入/按钮/卡片/徽章   UI components
+
+   3.0 新增能力 / New in 3.0 (component model, like a JS front-end):
+     - 虚拟节点组件树  virtual-node component tree: gui_h(tag; attrs; children)
+     - 组件渲染  render: gui_render(vnode) -> HTML（文本自动转义）
+     - 服务端状态  server-side state: gui_state_get / gui_state_set / gui_state_del
+     - SPA 前端脚本  front-end runtime: gui_script_spa()（表单 AJAX + 动作按钮 + toast）
+     - 更多控件  more widgets: gui_textarea / gui_select / gui_checkbox / gui_flex / gui_row_html / gui_col_html
    ============================================================ */
 
 /* ---- 1 内部工具 / internals ---- */
@@ -642,7 +649,7 @@ def gui_tpl(text; vars)-
 /* ---- 6 UI 组件 / UI components ---- */
 
 def _css()-
--back("body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;background:#f3f4f6;color:#111827;font-size:14px}.topbar{background:#111827;color:#fff;padding:12px 20px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:12px}.topbar .brand{flex:1}.topbar a{color:#c7d2fe;text-decoration:none;font-size:13px;font-weight:400}.wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;max-width:1200px;margin:0 auto}.side{width:200px;background:#fff;border-radius:10px;padding:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);flex-shrink:0}.side a{display:block;padding:8px 12px;color:#374151;text-decoration:none;border-radius:6px;margin-bottom:2px}.side a.active{background:#eef2ff;color:#4f46e5;font-weight:600}.main{flex:1;background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);min-width:0}.main h3{margin-top:0}.main textarea{width:100%;height:260px;font-family:ui-monospace,Consolas,monospace;font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:10px;box-sizing:border-box}.row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}.row button,.main button{padding:7px 16px;border:0;border-radius:6px;background:#4f46e5;color:#fff;cursor:pointer;font-size:13px}.row button.ghost,.main button.ghost{background:#e5e7eb;color:#374151}.main table{width:100%;border-collapse:collapse}.main th,.main td{padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:14px}.main th{color:#6b7280;font-weight:600}.main input[type=text],.main input[type=password],.main select{width:60%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:6px;box-sizing:border-box}.main input[type=file]{padding:6px 0}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;display:none;z-index:99}.card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-bottom:12px}.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;background:#eef2ff;color:#4f46e5;margin-right:6px}.badge.green{background:#ecfdf5;color:#059669}.badge.red{background:#fef2f2;color:#dc2626}.badge.gray{background:#f3f4f6;color:#6b7280}.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}.kv b{color:#6b7280;font-weight:500}.main pre{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px;overflow:auto;font-size:12px;font-family:ui-monospace,Consolas,monospace}"),
+-back("body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;background:#f3f4f6;color:#111827;font-size:14px}.topbar{background:#111827;color:#fff;padding:12px 20px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:12px}.topbar .brand{flex:1}.topbar a{color:#c7d2fe;text-decoration:none;font-size:13px;font-weight:400}.wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;max-width:1200px;margin:0 auto}.side{width:200px;background:#fff;border-radius:10px;padding:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);flex-shrink:0}.side a{display:block;padding:8px 12px;color:#374151;text-decoration:none;border-radius:6px;margin-bottom:2px}.side a.active{background:#eef2ff;color:#4f46e5;font-weight:600}.main{flex:1;background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);min-width:0}.main h3{margin-top:0}.main textarea{width:100%;height:260px;font-family:ui-monospace,Consolas,monospace;font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:10px;box-sizing:border-box}.row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}.row button,.main button{padding:7px 16px;border:0;border-radius:6px;background:#4f46e5;color:#fff;cursor:pointer;font-size:13px}.row button.ghost,.main button.ghost{background:#e5e7eb;color:#374151}.main table{width:100%;border-collapse:collapse}.main th,.main td{padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:14px}.main th{color:#6b7280;font-weight:600}.main input[type=text],.main input[type=password],.main select{width:60%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:6px;box-sizing:border-box}.main input[type=file]{padding:6px 0}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;display:none;z-index:99}.card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-bottom:12px}.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;background:#eef2ff;color:#4f46e5;margin-right:6px}.badge.green{background:#ecfdf5;color:#059669}.badge.red{background:#fef2f2;color:#dc2626}.badge.gray{background:#f3f4f6;color:#6b7280}.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}.kv b{color:#6b7280;font-weight:500}.main pre{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px;overflow:auto;font-size:12px;font-family:ui-monospace,Consolas,monospace}.main textarea{width:100%;min-height:90px;padding:8px 10px;border:1px solid #e5e7eb;border-radius:6px;box-sizing:border-box;font-family:ui-monospace,Consolas,monospace;font-size:13px}.main select{width:60%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:6px;box-sizing:border-box}.flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.flex.col{flex-direction:column;align-items:stretch}.grow{flex:1}.muted{color:#6b7280;font-size:12px}"),
 ,
 
 /* 完整页面：opts 支持 {"nav": [{"href"; "name"}]; "current": "/"; "scripts": "js"} */
@@ -855,10 +862,190 @@ def _handle_req(req; routes; assets)-
 /* 启动服务（阻塞）：每连接一线程 */
 def gui_serve(port; routes; assets)-
 -srv = #tcp_listen(port),
--print("vesna-gui 2.0 listening on http://localhost:" + #str(port)),
+-print("vesna-gui 3.0 listening on http://localhost:" + #str(port)),
 -print("routes: " + #join(#keys(routes); ", ")),
 -while true-
 --c = #tcp_accept(srv),
 --#thread("_serve_conn"; c; routes; assets),
 -,
+,
+
+/* ---- 8 组件树 / component tree (3.0) ---- */
+
+/* 自闭合标签 */
+_self_close = {"area": "1"; "base": "1"; "br": "1"; "col": "1"; "embed": "1"; "hr": "1"; "img": "1"; "input": "1"; "link": "1"; "meta": "1"; "source": "1"; "track": "1"; "wbr": "1"},
+
+/* 创建虚拟节点：gui_h(tag; attrs; children)
+   attrs: 普通属性值自动转义；"html" 键 = 不转义的原始 HTML 子内容；
+          on* 事件属性不转义（内联 JS，同 2.0 gui_button）。
+   children: 单个值或列表；字符串自动转义，dict 递归渲染，none 忽略。 */
+def gui_h(tag; attrs; children)-
+-back({"tag": tag; "attrs": attrs; "children": children}),
+,
+
+/* 渲染组件树 -> HTML 字符串 */
+def gui_render(v)-
+-if #type(v) == "dict"-
+--back(_render_node(v)),
+-,
+-if #type(v) == "list"-
+--out = "",
+--for it in v-
+---out = out + gui_render(it),
+--,
+--back(out),
+-,
+-if #type(v) == "none"-
+--back(""),
+-,
+-back(gui_esc(#str(v))),
+,
+
+/* 单个节点渲染（内部） */
+def _render_node(n)-
+-tag = #get(n; "tag"),
+-if #is_str(tag) == false or #len(tag) == '0'-
+--back(""),
+-,
+-attrs = #get(n; "attrs"),
+-children = #get(n; "children"),
+-raw = "",
+-a = "",
+-if #type(attrs) == "dict"-
+--for k in #keys(attrs)-
+---val = attrs[k],
+---if #type(val) != "none"-
+----if k == "html"-
+-----raw = #str(val),
+----else-
+-----if #startswith(k; "on")-
+------a = a + " " + k + "=\"" + #str(val) + "\"",
+-----else-
+------a = a + " " + k + "=\"" + gui_esc(#str(val)) + "\"",
+-----,
+----,
+---,
+--,
+-,
+-inner = raw,
+-if #type(children) == "list"-
+--for c in children-
+---inner = inner + gui_render(c),
+--,
+-else-
+--if #type(children) != "none"-
+---inner = inner + gui_render(children),
+--,
+-,
+-if #has_key(_self_close; tag)-
+--back("<" + tag + a + ">"),
+-,
+-back("<" + tag + a + ">" + inner + "</" + tag + ">"),
+,
+
+/* ---- 9 服务端状态 / state store (3.0) ---- */
+
+_store = {},
+_store_lock = "vesna_gui_store",
+
+/* 读全局状态（进程内） */
+def gui_state_get(name)-
+-#lock(_store_lock),
+-v = #get(_store; name),
+-#unlock(_store_lock),
+-back(v),
+,
+
+/* 写全局状态 */
+def gui_state_set(name; v)-
+-#lock(_store_lock),
+-_store[name] = v,
+-#unlock(_store_lock),
+-back("ok"),
+,
+
+/* 删除全局状态 */
+def gui_state_del(name)-
+-#lock(_store_lock),
+-if #has_key(_store; name)-
+--#pop_key(_store; name),
+-,
+-#unlock(_store_lock),
+-back("ok"),
+,
+
+/* ---- 10 更多控件 / more widgets (3.0) ---- */
+
+/* 多行文本 */
+def gui_textarea(name; label; value; rows)-
+-r = rows,
+-if #is_str(r) == false or #len(r) == '0'-
+--r = '4',
+-,
+-back("<div class=\"row\"><label style=\"width:90px\">" + gui_esc(label) + "</label><textarea name=\"" + name + "\" rows=\"" + r + "\">" + gui_esc(value) + "</textarea></div>"),
+,
+
+/* 下拉选择：options = [{"value"; "label"}; ...]，selected 为当前值 */
+def gui_select(name; label; options; selected)-
+-h = "<div class=\"row\"><label style=\"width:90px\">" + gui_esc(label) + "</label><select name=\"" + name + "\">",
+-for o in options-
+--v = #get(o; "value"),
+--lb = #get(o; "label"),
+--sel = "",
+--if v == selected-
+---sel = " selected",
+--,
+--h = h + "<option value=\"" + gui_esc(v) + "\"" + sel + ">" + gui_esc(lb) + "</option>",
+-,
+-back(h + "</select></div>"),
+,
+
+/* 复选框 */
+def gui_checkbox(name; label; checked)-
+-c = "",
+-if checked == true-
+--c = " checked",
+-,
+-back("<div class=\"row\"><label style=\"width:90px\">" + gui_esc(label) + "</label><input type=\"checkbox\" name=\"" + name + "\" value=\"1\"" + c + "></div>"),
+,
+
+/* flex 行容器（HTML 字符串版，items 为已渲染 HTML） */
+def gui_row_html(items; style)-
+-s = "",
+-if #is_str(style) and #len(style) > '0'-
+--s = " style=\"" + style + "\"",
+-,
+-back("<div class=\"row\"" + s + ">" + items + "</div>"),
+,
+
+/* flex 列容器（HTML 字符串版） */
+def gui_col_html(items; style)-
+-s = "",
+-if #is_str(style) and #len(style) > '0'-
+--s = " style=\"" + style + "\"",
+-,
+-back("<div class=\"col\"" + s + ">" + items + "</div>"),
+,
+
+/* flex 容器（组件节点版）：dir 为 "row"(默认)/"col"，gap 像素数（字符串） */
+def gui_flex(children; dir; gap)-
+-attrs = {"class": "flex"},
+-if dir == "col"-
+--attrs["class"] = "flex col",
+-,
+-if #is_str(gap) and #len(gap) > '0'-
+--attrs["style"] = "gap:" + gap + "px",
+-,
+-back(gui_h("div"; attrs; children)),
+,
+
+/* ---- 11 SPA 前端运行时 / front-end runtime (3.0) ---- */
+
+/* 返回一段前端 JS：
+   - <form> 提交改为 fetch POST（JSON 响应），data-ajax="0" 的表单保持原生
+   - [data-action] 按钮点击触发 fetch POST（data-href 为地址）
+   - 响应 {"ok"; "msg"; "reload"; "href"} 驱动 toast / 刷新 / 跳转
+   用法：gui_page(inner; {"scripts": gui_script_spa()}) */
+def gui_script_spa()-
+-back("(function(){function t(m){var e=document.getElementById('toast');if(!e)return;e.textContent=m;e.style.display='block';setTimeout(function(){e.style.display='none';},2000);}document.addEventListener('submit',function(e){var f=e.target;if(f.dataset.ajax==='0')return;e.preventDefault();var d=new FormData(f);fetch(f.action||location.pathname,{method:'POST',body:d}).then(function(r){return r.json();}).then(function(j){if(j.msg)t(j.msg);if(j.reload)location.reload();if(j.href)location.href=j.href;}).catch(function(){t('request failed');});});document.addEventListener('click',function(e){var b=e.target.closest?e.target.closest('[data-action]'):null;if(!b)return;e.preventDefault();var d=new FormData();d.append('_action',b.getAttribute('data-action'));fetch(b.getAttribute('data-href')||location.pathname,{method:'POST',body:d}).then(function(r){return r.json();}).then(function(j){if(j.msg)t(j.msg);if(j.reload)location.reload();if(j.href)location.href=j.href;}).catch(function(){t('request failed');});});})();"),
 ,
